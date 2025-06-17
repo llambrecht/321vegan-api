@@ -1,0 +1,26 @@
+version: '3.9'
+services:
+  321vegandb:
+    image: postgres
+    environment:
+      POSTGRES_USER: vegan_user
+      POSTGRES_PASSWORD: vegan_pass
+      POSTGRES_DB: vegan_db
+    volumes:
+      - 321vegan_postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  321veganapi:
+    build: .
+    volumes:
+      - .:/app
+    ports:
+      - "8000:8000"
+    depends_on:
+      - 321vegandb
+    env_file:
+      - .env
+
+volumes:
+  321vegan_postgres_data:
