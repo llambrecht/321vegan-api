@@ -25,7 +25,6 @@ class Brand(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, nullable=False)
     parent_id = Column(Integer, ForeignKey("brands.id"), nullable=True)
-    biodynamic = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.now)
     updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
 
@@ -41,5 +40,6 @@ class Product(Base):
     problem_description = Column(Text)
     brand_id = Column(Integer, ForeignKey("brands.id"))
     status = Column(Enum(ProductStatus), default=ProductStatus.MAYBE_VEGAN)
+    biodynamic = Column(Boolean, default=False)
     state = Column(Enum(ProductState), default=ProductState.CREATED)
     created_from_off = Column(Boolean, default=False)
