@@ -1,0 +1,3 @@
+🌱 Team
+
+<table> <tr> <td align="center"> <a href="https://github.com/llambrecht" target="_blank"> <img src="https://avatars.githubusercontent.com/u/10818457?v=4" width="100px" style="border-radius: 50%;" alt="llambrecht"/> <br /> <strong>llambrecht</strong> </a> <br /> <span><code>Founder & Maintainer</code></span> </td> </tr> </table>
