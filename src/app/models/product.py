@@ -1,7 +1,7 @@
 from sqlalchemy import Column, Integer, String, Text, Boolean, ForeignKey, Enum, DateTime
 from sqlalchemy.orm import relationship
 from datetime import datetime
-from .db import Base
+from app.database.base_class import Base
 import enum
 
 class ProductState(str, enum.Enum):
@@ -19,15 +19,6 @@ class ProductStatus(str, enum.Enum):
     NOT_FOUND = "NOT_FOUND"
 
 
-class Brand(Base):
-    __tablename__ = "brands"
-
-    id = Column(Integer, primary_key=True, index=True)
-    name = Column(String, nullable=False)
-    parent_id = Column(Integer, ForeignKey("brands.id"), nullable=True)
-    created_at = Column(DateTime, default=datetime.now)
-    updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
-
 class Product(Base):
     __tablename__ = "products"
 
@@ -39,7 +30,9 @@ class Product(Base):
     description = Column(Text)
     problem_description = Column(Text)
     brand_id = Column(Integer, ForeignKey("brands.id"))
+    brand = relationship("Brand", back_populates="products")
     status = Column(Enum(ProductStatus), default=ProductStatus.MAYBE_VEGAN)
     biodynamic = Column(Boolean, default=False)
     state = Column(Enum(ProductState), default=ProductState.CREATED)
     created_from_off = Column(Boolean, default=False)
+
