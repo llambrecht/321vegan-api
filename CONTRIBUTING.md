@@ -201,6 +201,10 @@ Make sure you have the following installed:
 - [Docker](https://docs.docker.com/engine/install/)
 - [Docker Compose](https://docs.docker.com/compose/install/)
 
+Optionally, you can use make to set up the project:
+
+- [make](https://www.gnu.org/software/make/manual/make.html)
+
 > 💡 If you're new to FastApi, check out the official [FastApi Getting Started Guide](https://fastapi.tiangolo.com/)
 
 ---
@@ -214,13 +218,34 @@ Make sure you have the following installed:
    cd 321vegan-api
    ```
 
-2. **Build docker containers**
+2. **Setting up the .env file**
 
-   ```sh
-    docker-compose up -d
-   ```
+   - Copy and rename the `.env.example` to `.env`
+     Feel free to modify the values of the variables as you wish, but if you change variables names or add or remove variables, be sure to update the `src/app/config.py` file too.
 
-3. **You're up and running! 🎉**
+3. **Build docker containers**
+
+   - with make:
+     ```sh
+     make install
+     ```
+   - otherwise:
+
+     ```sh
+     docker compose build --no-cache
+     docker compose up --force-recreate
+     ```
+
+     Once the containers are up, launch the following comand lines to setting up the database and the superuser:
+
+     ```sh
+     docker exec -it 321veganapi bash
+     poetry run alembic downgrade base
+     poetry run alembic alembic upgrade head
+     poetry run python -m scripts.create_admin_user
+     ```
+
+4. **You're up and running! 🎉**
 
    Go to [http://localhost:8000/](http://localhost:8000/) and start coding!
 
