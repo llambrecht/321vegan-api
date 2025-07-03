@@ -56,6 +56,6 @@ class ProductOutPaginated(BaseModel):
 
 class ProductFilters(BaseModel):
     name: Optional[str] = None
-    brand_name: Optional[str] = None
+    brand__name: Optional[str] = None
     status: Optional[str] = None
     state: Optional[str] = None

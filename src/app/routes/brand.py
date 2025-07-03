@@ -9,11 +9,12 @@ from app.crud import brand_crud
 from app.database.db import get_db
 from app.log import get_logger
 from app.models import Brand, User
-from app.schemas.brand import BrandCreate, BrandOut, BrandUpdate, BrandOutPaginated
+from app.schemas.brand import BrandCreate, BrandOut, BrandUpdate, BrandOutPaginated, BrandFilters
 
 log = get_logger(__name__)
 
 router = APIRouter(dependencies=[Depends(get_current_active_user)])
+
 
 @router.get(
     "/", response_model=List[Optional[BrandOut]], status_code=status.HTTP_200_OK
@@ -34,13 +35,15 @@ def fetch_all_brands(db: Session = Depends(get_db)) -> List[Optional[BrandOut]]:
     
     return brand_crud.get_all(db)
 
+
 @router.get(
     "/search", response_model=Optional[BrandOutPaginated], status_code=status.HTTP_200_OK
 )
 def fetch_paginated_brands(
     db: Session = Depends(get_db),
     pagination_params: Tuple[int, int] = Depends(get_pagination_params),
-    orderby_params: Tuple[str, bool] = Depends(get_sort_by_params)
+    orderby_params: Tuple[str, bool] = Depends(get_sort_by_params),
+    filter_params: BrandFilters = Depends()
 ) -> Optional[BrandOutPaginated]:
     """
     Fetch many brands.
@@ -60,7 +63,12 @@ def fetch_paginated_brands(
     sortby, descending = orderby_params
     total = brand_crud.count(db)
     brands = brand_crud.get_many(
-        db, skip=page, limit=size, order_by=sortby, descending=descending
+        db, 
+        skip=page, 
+        limit=size, 
+        order_by=sortby, 
+        descending=descending, 
+        **filter_params.model_dump(exclude_none=True)
     )
     pages = (total + size - 1) // size
     return {
@@ -100,6 +108,7 @@ def fetch_brand_by_id(
             detail=f"Brand with id {id} not found",
         )
     return brand
+
 
 @router.post(
     "/",
