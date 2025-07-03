@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 from typing import Any, Union
 from jose import jwt, JWTError
 from app.config import settings
-
+from app.schemas.auth import TokenPayload
 # hack for passlib new bcrypt incompatibility
 import bcrypt
 bcrypt.__about__ = bcrypt
@@ -34,6 +34,19 @@ def create_access_token(
         to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM
     )
     return encoded_jwt
+
+def verify_token(token: str) -> TokenPayload | None:
+    try:
+        payload = jwt.decode(
+            token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]
+        )
+        sub = payload.get("sub")
+        if not sub:
+            return None
+        token_data = TokenPayload(**payload)
+    except (jwt.JWTError, ValidationError) as e:
+        return None
+    return token_data
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """
