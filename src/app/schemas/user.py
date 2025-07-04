@@ -1,6 +1,6 @@
 from typing import List, Optional
 from pydantic import BaseModel, EmailStr
-import datetime
+from datetime import datetime, timezone
 
 class UserBase(BaseModel):
     role: str
@@ -16,16 +16,22 @@ class UserUpdate(UserBase):
 
 class UserInDB(UserBase):
     id: int
-    created_at: datetime.datetime
-    updated_at: datetime.datetime
+    created_at: datetime
+    updated_at: datetime
     avatar: Optional[str] = None
     password: str
 
 class UserOut(UserBase):
     id: int
-    created_at: datetime.datetime
-    updated_at: datetime.datetime
+    created_at: datetime
+    updated_at: datetime
     avatar: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+        json_encoders = {
+            datetime: lambda v: v.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%f%z"),
+        }
 
 class UserOutPaginated(BaseModel):
     items: List[UserOut]

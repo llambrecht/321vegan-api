@@ -1,7 +1,7 @@
 from pydantic import BaseModel, Field
 from typing import List, Optional
 from app.schemas.brand import Brand
-import datetime
+from datetime import datetime, timezone
 
 class Product(BaseModel):
     id: int
@@ -26,14 +26,14 @@ class ProductUpdate(ProductBase):
 
 class ProductInDB(ProductBase):
     id: int
-    created_at: datetime.datetime
-    updated_at: datetime.datetime
+    created_at: datetime
+    updated_at: datetime
     created_from_off: bool
 
 class ProductOut(BaseModel):
     id: int
-    created_at: datetime.datetime
-    updated_at: datetime.datetime
+    created_at: datetime
+    updated_at: datetime
     ean: str
     name: Optional[str] = None
     description: Optional[str] = None
@@ -46,6 +46,9 @@ class ProductOut(BaseModel):
 
     class Config:
         from_attributes = True
+        json_encoders = {
+            datetime: lambda v: v.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%f%z"),
+        }
 
 class ProductOutPaginated(BaseModel):
     items: List[ProductOut]
@@ -55,6 +58,7 @@ class ProductOutPaginated(BaseModel):
     pages: int
 
 class ProductFilters(BaseModel):
+    ean: Optional[str] = None
     name: Optional[str] = None
     brand__name: Optional[str] = None
     status: Optional[str] = None
