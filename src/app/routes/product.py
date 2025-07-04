@@ -10,11 +10,12 @@ from app.database.db import get_db
 from app.log import get_logger
 from app.models import Product
 
-from app.schemas.product import ProductCreate, ProductOut, ProductUpdate, ProductOutPaginated
+from app.schemas.product import ProductCreate, ProductOut, ProductUpdate, ProductOutPaginated, ProductFilters
 
 log = get_logger(__name__)
 
 router = APIRouter(dependencies=[Depends(get_current_active_user)])
+
 
 @router.get(
     "/", response_model=List[Optional[ProductOut]], status_code=status.HTTP_200_OK
@@ -34,13 +35,15 @@ def fetch_all_products(db: Session = Depends(get_db)) -> List[Optional[ProductOu
     """
     return product_crud.get_all(db)
 
+
 @router.get(
     "/search", response_model=Optional[ProductOutPaginated], status_code=status.HTTP_200_OK
 )
 def fetch_paginated_products(
     db: Session = Depends(get_db),
     pagination_params: Tuple[int, int] = Depends(get_pagination_params),
-    orderby_params: Tuple[str, bool] = Depends(get_sort_by_params)
+    orderby_params: Tuple[str, bool] = Depends(get_sort_by_params),
+    filter_params: ProductFilters = Depends()
 ) -> Optional[ProductOutPaginated]:
     """
     Fetch many products.
@@ -60,7 +63,12 @@ def fetch_paginated_products(
     sortby, descending = orderby_params
     total = product_crud.count(db)
     products = product_crud.get_many(
-        db, skip=page, limit=size, order_by=sortby, descending=descending
+        db, 
+        skip=page, 
+        limit=size, 
+        order_by=sortby, 
+        descending=descending,
+        **filter_params.model_dump(exclude_none=True)
     )
     pages = (total + size - 1) // size
     return {
@@ -100,6 +108,7 @@ def fetch_product_by_id(
             detail=f"Product with id {id} not found",
         )
     return product
+
 
 @router.post(
     "/",

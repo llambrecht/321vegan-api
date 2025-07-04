@@ -8,7 +8,7 @@ from app.crud import user_crud
 from app.database.db import get_db
 from app.log import get_logger
 from app.models import User
-from app.schemas.user import UserCreate, UserOutPaginated, UserOut, UserUpdate
+from app.schemas.user import UserCreate, UserOutPaginated, UserOut, UserUpdate, UserFilters
 from app.security import get_password_hash
 
 log = get_logger(__name__)
@@ -46,7 +46,8 @@ def fetch_all_users(
 )
 def fetch_paginated_users(
     db: Session = Depends(get_db), pagination_params: Tuple[int, int] = Depends(get_pagination_params),
-    orderby_params: Tuple[str, bool] = Depends(get_sort_by_params)
+    orderby_params: Tuple[str, bool] = Depends(get_sort_by_params),
+    filters_params: UserFilters = Depends()
 ) -> Optional[UserOutPaginated]:
     """
     Fetches all users with pagination.
@@ -69,7 +70,12 @@ def fetch_paginated_users(
     sortby, descending = orderby_params
     total = user_crud.count(db)
     users = user_crud.get_many(
-        db, skip=page, limit=size, order_by=sortby, descending=descending
+        db, 
+        skip=page, 
+        limit=size, 
+        order_by=sortby, 
+        descending=descending,
+        **filter_params.model_dump(exclude_none=True)
     )
     pages = (total + size - 1) // size
     return {

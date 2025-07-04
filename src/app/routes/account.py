@@ -14,13 +14,13 @@ log = get_logger(__name__)
 
 router = APIRouter()
 
+
 @router.get("/", response_model=UserOut, status_code=status.HTTP_200_OK)
-def fetch_current_active_user(db: Session = Depends(get_db), user: User = Depends(get_current_active_user)):
+def fetch_current_active_user(user: User = Depends(get_current_active_user)):
     """
-    Fetches a current active user from the database.
+    Fetches the current active user from the database.
 
     Parameters:
-        db (Session): The database session.
         user (User, optional): The current active user.
 
     Returns:
