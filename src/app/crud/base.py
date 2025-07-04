@@ -8,7 +8,6 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from sqlalchemy import desc, asc
 from app.models import Base
-from app.utils import get_class_by_name
 from app.security import get_password_hash
 from app.log import get_logger
 
