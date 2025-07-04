@@ -47,7 +47,7 @@ def fetch_all_users(
 def fetch_paginated_users(
     db: Session = Depends(get_db), pagination_params: Tuple[int, int] = Depends(get_pagination_params),
     orderby_params: Tuple[str, bool] = Depends(get_sort_by_params),
-    filters_params: UserFilters = Depends()
+    filter_params: UserFilters = Depends()
 ) -> Optional[UserOutPaginated]:
     """
     Fetches all users with pagination.
