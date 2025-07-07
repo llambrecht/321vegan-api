@@ -12,12 +12,12 @@ from app.config import settings
 from app.crud import user_crud
 from app.database import get_db
 from app.exceptions import _get_credential_exception
-from app.models import User
+from app.models import User, Base
 from app.schemas.auth import TokenPayload
 
 
-
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
+
 
 def get_pagination_params(
     page: int = Query(1, ge=1), page_size: int = Query(5, ge=1, le=100)
@@ -36,7 +36,8 @@ def get_pagination_params(
     size = page_size
     return page, size
 
-def get_sort_by_params(sortby: str = Query(None), direction: str = Query(None)) -> Tuple[str, bool]:
+
+def get_sort_by_params(sortby: str = Query('created_at'), direction: str = Query('desc')) -> Tuple[str, bool]:
     """
     Get the order by parameters.
 

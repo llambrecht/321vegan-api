@@ -25,7 +25,7 @@ class Product(Base):
     id = Column(Integer, primary_key=True, index=True)
     created_at = Column(DateTime, default=datetime.now)
     updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
-    ean = Column(String, nullable=False)
+    ean = Column(String, unique=True, index=True, nullable=False)
     name = Column(String)
     description = Column(Text)
     problem_description = Column(Text)

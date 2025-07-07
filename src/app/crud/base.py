@@ -7,13 +7,13 @@ from typing import List, Optional, Type, TypeVar
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from sqlalchemy import desc, asc
+from app.models import Base
 from app.security import get_password_hash
 from app.log import get_logger
 
 ORMModel = TypeVar("ORMModel")
 CreateSchemaType = TypeVar("CreateSchemaType", bound=BaseModel)
 UpdateSchemaType = TypeVar("UpdateSchemaType", bound=BaseModel)
-OwnerIDType = int
 
 log = get_logger(__name__)
 
@@ -110,12 +110,13 @@ class CRUDRepository:
             skip,
             limit,
         )
-        col_name = getattr(self._model, order_by, 'created_at')
+        # sort by
+        model_attribute = getattr(self._model, order_by, 'created_at')
         return (
             db.query(self._model)
             .filter(*args)
             .filter_by(**kwargs)
-            .order_by(desc(col_name) if descending else asc(col_name))
+            .order_by(desc(model_attribute) if descending else asc(model_attribute))
             .offset(skip)
             .limit(limit)
             .all()
