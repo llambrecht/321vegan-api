@@ -241,7 +241,7 @@ Optionally, you can use make to set up the project:
      ```sh
      docker exec -it 321veganapi bash
      poetry run alembic downgrade base
-     poetry run alembic alembic upgrade head
+     poetry run alembic upgrade head
      poetry run python -m scripts.create_admin_user
      ```
 
