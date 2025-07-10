@@ -44,6 +44,7 @@ class UserFilters(BaseModel):
     nickname: Optional[str] = None
     role: Optional[str] = None
     status: Optional[str] = None
+    is_active: Optional[str] = None
 
 class UserUpdateOwn(BaseModel):
     nickname: Optional[str] = None

@@ -61,8 +61,7 @@ def fetch_paginated_brands(
     """
     page, size = pagination_params
     sortby, descending = orderby_params
-    total = brand_crud.count(db)
-    brands = brand_crud.get_many(
+    brands, total = brand_crud.get_many(
         db, 
         skip=page, 
         limit=size, 

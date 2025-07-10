@@ -58,7 +58,7 @@ def fetch_paginated_users(
         orderby_params (Tuple[str, bool]): The order by parameters (sortby, descending).
 
     Returns:
-        Optional[ProductOutPaginated]: A list of user objects,
+        Optional[UserOutPaginated]: A list of user objects,
             or None if there are no users.
 
     Raises:
@@ -68,8 +68,7 @@ def fetch_paginated_users(
     
     page, size = pagination_params
     sortby, descending = orderby_params
-    total = user_crud.count(db)
-    users = user_crud.get_many(
+    users, total = user_crud.get_many(
         db, 
         skip=page, 
         limit=size, 

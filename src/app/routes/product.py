@@ -31,7 +31,7 @@ def fetch_all_products(db: Session = Depends(get_db)) -> List[Optional[ProductOu
         db (Session): The database session.
 
     Returns:
-        ProductOut: The list of products fetched from the database.
+        List[Optional[ProductOut]]: The list of products fetched from the database.
     """
     return product_crud.get_all(db)
 
@@ -61,8 +61,7 @@ def fetch_paginated_products(
     """
     page, size = pagination_params
     sortby, descending = orderby_params
-    total = product_crud.count(db)
-    products = product_crud.get_many(
+    products, total = product_crud.get_many(
         db, 
         skip=page, 
         limit=size, 
