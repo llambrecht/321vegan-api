@@ -43,4 +43,4 @@ class BrandOutPaginated(BaseModel):
 
 class BrandFilters(BaseModel):
     name: Optional[str] = None
-    parent__name: Optional[int] = None
+    parent: Optional[str] = None

@@ -2,20 +2,22 @@
 This module contains the base interface for CRUD 
 (Create, Read, Update, Delete) operations.
 """
-from typing import List, Optional, Type, TypeVar
+from typing import List, Optional, Type, TypeVar, Tuple
 
 from pydantic import BaseModel
-from sqlalchemy.orm import Session
 from sqlalchemy import desc, asc
+from sqlalchemy.orm import Session, RelationshipProperty, aliased
 from app.models import Base
 from app.security import get_password_hash
 from app.log import get_logger
+from app.crud.filters import buildQueryFilters
 
 ORMModel = TypeVar("ORMModel")
 CreateSchemaType = TypeVar("CreateSchemaType", bound=BaseModel)
 UpdateSchemaType = TypeVar("UpdateSchemaType", bound=BaseModel)
 
 log = get_logger(__name__)
+
 
 
 class CRUDRepository:
@@ -83,7 +85,7 @@ class CRUDRepository:
 
     def get_many(
         self, db: Session, *args, skip: int = 0, limit: int = 100, order_by: str = 'created_at', descending: bool = False, **kwargs
-    ) -> List[ORMModel]:
+    ) -> Tuple[List[ORMModel], int]:
         """
         Retrieves multiple records from the database.
 
@@ -100,7 +102,7 @@ class CRUDRepository:
                 db.query(MyClass).filter_by(name='some name', id > 5)
 
         Returns:
-            List[ORMModel]: List of retrieved records.
+            Tuple[List[ORMModel], int]: List of retrieved records and number of records.
         """
         log.debug(
             "retrieving many records for %s ordered by %s %s with pagination skip %s and limit %s",
@@ -110,16 +112,23 @@ class CRUDRepository:
             skip,
             limit,
         )
+
+        query = db.query(self._model)
+
+        # filters
+        query = buildQueryFilters(self._model, query, kwargs)
+
         # sort by
         model_attribute = getattr(self._model, order_by, 'created_at')
+
+        total = query.count()
+        items = query.\
+            order_by(desc(model_attribute) if descending else asc(model_attribute)).\
+            offset(skip).\
+            limit(limit).all()
         return (
-            db.query(self._model)
-            .filter(*args)
-            .filter_by(**kwargs)
-            .order_by(desc(model_attribute) if descending else asc(model_attribute))
-            .offset(skip)
-            .limit(limit)
-            .all()
+            items,
+            total
         )
 
     def create(self, db: Session, obj_create: CreateSchemaType) -> ORMModel:
