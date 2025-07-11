@@ -121,13 +121,14 @@ class CRUDRepository:
         # sort by
         model_attribute = getattr(self._model, order_by, 'created_at')
 
-        query = query.\
+        total = query.count()
+        items = query.\
             order_by(desc(model_attribute) if descending else asc(model_attribute)).\
             offset(skip).\
-            limit(limit)
+            limit(limit).all()
         return (
-            query.all(),
-            query.count()
+            items,
+            total
         )
 
     def create(self, db: Session, obj_create: CreateSchemaType) -> ORMModel:
