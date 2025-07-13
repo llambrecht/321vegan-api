@@ -66,9 +66,6 @@ class ProductFilters(BaseModel):
     name__contains: Optional[str] = None
     brand: Optional[str] = None
     brand___name__contains: Optional[str] = None
-    brand_name: Optional[str] = None
-    brand_name__ilike: Optional[str] = None
-    brand_name__contains: Optional[str] = None
     status: Optional[str] = None
     state: Optional[str] = None
     created_at: Optional[str] = None
