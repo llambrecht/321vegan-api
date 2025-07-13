@@ -177,7 +177,7 @@ def create_user(
     return user
 
 
-@router.delete("/{id}", status_code=status.HTTP_200_OK, dependencies=[Depends(RoleChecker(["admin"]))])
+@router.delete("/{id}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(RoleChecker(["contributor", "admin"]))])
 def delete_user(
     id: int,
     db: Session = Depends(get_db),
@@ -219,9 +219,6 @@ def delete_user(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Couldn't delete user with id {id}. Error: {str(e)}",
         ) from e
-
-    return {"detail": f"User with id {id} deleted."}
-
 
 @router.put("/{id}", response_model=UserOut, status_code=status.HTTP_200_OK, dependencies=[Depends(RoleChecker(["admin"]))])
 def update_user(
