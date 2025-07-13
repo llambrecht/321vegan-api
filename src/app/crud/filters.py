@@ -1,5 +1,6 @@
 from typing import Type, TypeVar, Tuple, Dict
 from sqlalchemy.sql import operators
+from sqlalchemy import extract
 from sqlalchemy.orm import Query, RelationshipProperty, aliased
 
 ORMModel = TypeVar("ORMModel")
@@ -82,20 +83,18 @@ def buildQueryFilters(model: Type[ORMModel], query: Query, filter_args: Dict) ->
                 clause = operator(r_attr, val)
                 # Join aliased relationship and filter on it 
                 query = query.join(r_class, relationship).filter(clause)
-            elif hasattr(model, field):
+            elif OPERATOR_SPLITTER in field:
                 # Filter with custom operator
-                if OPERATOR_SPLITTER in value:
-                    ope, val = value.split(OPERATOR_SPLITTER)
-                    if ope not in OPERATOR_MAPPING:
-                        continue
+                field_name, ope = field.split(OPERATOR_SPLITTER, 1)
+                if hasattr(model, field_name) and ope in OPERATOR_MAPPING:
                     operator = OPERATOR_MAPPING[ope]
-                    m_attr = getattr(model, field)    
-                    clause = operator(m_attr, val)
+                    m_attr = getattr(model, field_name)    
+                    clause = operator(m_attr, value)
                     # Filter on queried model
-                    query = query.filter(clause) 
-                else:
-                    # Simple filter by
-                    filters_by[field] = value
+                    query = query.filter(clause)
+            elif hasattr(model, field):
+                # Simple filter by
+                filters_by[field] = value
         query = query.filter_by(**filters_by)
         return query
     except Exception:

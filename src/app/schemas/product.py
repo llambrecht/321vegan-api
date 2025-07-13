@@ -60,6 +60,8 @@ class ProductOutPaginated(BaseModel):
 class ProductFilters(BaseModel):
     ean: Optional[str] = None
     name: Optional[str] = None
+    name__ilike: Optional[str] = None
+    name__contains: Optional[str] = None
     brand: Optional[str] = None
     status: Optional[str] = None
     state: Optional[str] = None

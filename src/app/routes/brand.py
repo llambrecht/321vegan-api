@@ -211,7 +211,7 @@ def update_brand(
     return brand
 
 
-@router.delete("/{id}", response_model=dict, status_code=status.HTTP_200_OK, dependencies=[Depends(RoleChecker(["admin"]))])
+@router.delete("/{id}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(RoleChecker(["contributor", "admin"]))])
 def delete_brand(
     id: int,
     db: Session = Depends(get_db),
@@ -246,6 +246,4 @@ def delete_brand(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Couldn't delete brand with id {id}. Error: {str(e)}",
-        ) from e  
-
-    return {"detail": f"Brand with id {id} deleted."}
+        ) from e

@@ -157,10 +157,22 @@ def create_product(
             db, product_create
         )
     except IntegrityError as e:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail=f"Product with ean {product_create.ean} already exists",
-        ) from e
+        error_message = str(e.orig)
+        if "unique constraint" in error_message.lower() and "ean" in error_message.lower():
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=f"Product with EAN {product_create.ean} already exists",
+            ) from e
+        elif "foreign key constraint" in error_message.lower() and "brand_id" in error_message.lower():
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Brand with id {product_create.brand_id} does not exist",
+            ) from e
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Data integrity error: {error_message}",
+            ) from e
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -215,7 +227,7 @@ def update_product(
     return product
 
 
-@router.delete("/{id}", response_model=dict, status_code=status.HTTP_200_OK, dependencies=[Depends(RoleChecker(["contributor", "admin"]))])
+@router.delete("/{id}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(RoleChecker(["contributor", "admin"]))])
 def delete_product(
     id: int,
     db: Session = Depends(get_db)
@@ -250,7 +262,5 @@ def delete_product(
     except Exception as e:  
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Couldn't delete product with id {exercise_id}. Error: {str(e)}",
+            detail=f"Couldn't delete product with id {id}. Error: {str(e)}",
         ) from e  
-
-    return {"detail": f"Product with id {id} deleted."}
