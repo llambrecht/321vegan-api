@@ -241,10 +241,10 @@ Optionally, you can use make to set up the project:
      ```sh
      docker exec -it 321veganapi bash
      poetry run alembic downgrade base
-          # Manually clean any remaining enum types
+     # Manually clean any remaining enum types if needed
      docker exec -it 321vegandb psql -U vegan_user -d vegan_db -c "DROP TYPE IF EXISTS productstatus CASCADE;"
      docker exec -it 321vegandb psql -U vegan_user -d vegan_db -c "DROP TYPE IF EXISTS productstate CASCADE;"
-     docker exec -it 321vegandb psql -U vegan_user -d vegan_db -c "DROP TYPE IF EXISTS productstate userrole;"
+     docker exec -it 321vegandb psql -U vegan_user -d vegan_db -c "DROP TYPE IF EXISTS userrole CASCADE;"
 
      poetry run alembic upgrade head
      poetry run python -m scripts.create_admin_user
