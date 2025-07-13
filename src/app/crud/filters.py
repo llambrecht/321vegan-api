@@ -67,22 +67,27 @@ def buildQueryFilters(model: Type[ORMModel], query: Query, filter_args: Dict) ->
         relations = [c.key for c in model.__mapper__.attrs
                 if isinstance(c, RelationshipProperty)]
         for field, value in filter_args.items():
-            if field in relations and RELATION_SPLITTER in value:
+            if RELATION_SPLITTER in field:
                 # Filters by relationship attributes
-                relationship = getattr(model, field)
-                # aliased for self relationship case
-                r_class = aliased(relationship.property.mapper.class_)
-                r_field, rest = value.split(RELATION_SPLITTER)
-                r_attr = getattr(r_class, r_field)
-                if r_attr is None or OPERATOR_SPLITTER not in rest:
-                    continue
-                ope, val = rest.split(OPERATOR_SPLITTER)
-                if ope not in OPERATOR_MAPPING:
-                    continue
-                operator = OPERATOR_MAPPING[ope]
-                clause = operator(r_attr, val)
-                # Join aliased relationship and filter on it 
-                query = query.join(r_class, relationship).filter(clause)
+                relation_field, rest = field.split(RELATION_SPLITTER, 1)
+                if relation_field in relations:
+                    relationship = getattr(model, relation_field)
+                    # aliased for self relationship case
+                    r_class = aliased(relationship.property.mapper.class_)
+                    
+                    if OPERATOR_SPLITTER in rest:
+                        r_field, ope = rest.rsplit(OPERATOR_SPLITTER, 1)
+                    else:
+                        r_field = rest
+                        ope = 'exact'
+                    
+                    r_attr = getattr(r_class, r_field)
+                    if r_attr is None or ope not in OPERATOR_MAPPING:
+                        continue
+                    operator = OPERATOR_MAPPING[ope]
+                    clause = operator(r_attr, value)
+                    # Join aliased relationship and filter on it 
+                    query = query.join(r_class, relationship).filter(clause)
             elif OPERATOR_SPLITTER in field:
                 # Filter with custom operator
                 field_name, ope = field.split(OPERATOR_SPLITTER, 1)

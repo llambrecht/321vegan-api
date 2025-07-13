@@ -31,6 +31,7 @@ class Product(Base):
     problem_description = Column(Text)
     brand_id = Column(Integer, ForeignKey("brands.id"))
     brand = relationship("Brand", back_populates="products")
+    brand_name = Column(String, index=True, nullable=True)
     status = Column(Enum(ProductStatus), default=ProductStatus.MAYBE_VEGAN)
     biodynamic = Column(Boolean, default=False)
     state = Column(Enum(ProductState), default=ProductState.CREATED)
