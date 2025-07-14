@@ -15,6 +15,8 @@ app.add_middleware(
         'http://localhost:8080',
         "https://321vegan.fr",
         "https://www.321vegan.fr",
+        "https://www.tool.321vegan.fr",
+        "https://tool.321vegan.fr",
     ],
     allow_credentials=True,
     allow_methods=["*"],
