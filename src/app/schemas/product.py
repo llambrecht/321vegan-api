@@ -14,12 +14,14 @@ class ProductBase(BaseModel):
     description: Optional[str] = None
     problem_description: Optional[str] = None
     brand_id: Optional[int] = None
-    status: str = Field(..., min_length=1)
-    biodynamic: bool
-    state: str = Field(..., min_length=1)
+    status: Optional[str] = None
+    biodynamic: Optional[bool] = None
+    state: Optional[str] = None
 
 class ProductCreate(ProductBase):
-    pass
+    status: str = "MAYBE_VEGAN"
+    biodynamic: bool = False
+    state: str = "CREATED"
 
 class ProductUpdate(ProductBase):
     pass
@@ -63,6 +65,8 @@ class ProductFilters(BaseModel):
     name__ilike: Optional[str] = None
     name__contains: Optional[str] = None
     brand: Optional[str] = None
+    brand___name__contains: Optional[str] = None
     status: Optional[str] = None
     state: Optional[str] = None
     created_at: Optional[str] = None
+    created_at__gt: Optional[str] = None
