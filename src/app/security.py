@@ -3,6 +3,9 @@ from typing import Any, Union
 from jose import jwt, JWTError
 from app.config import settings
 from app.schemas.auth import TokenPayload
+import secrets
+import string
+
 # hack for passlib new bcrypt incompatibility
 import bcrypt
 bcrypt.__about__ = bcrypt
@@ -72,3 +75,16 @@ def get_password_hash(password: str) -> str:
         str: The hash value of the password.
     """
     return pwd_context.hash(password)
+
+def generate_api_key(length: int = 32) -> str:
+    """
+    Generates a cryptographically strong random numbers string.
+
+    Parameters:
+        length (int): The length of the generated string.
+
+    Returns:
+        str: The generated value of the key.
+    """
+    alphabet = string.ascii_letters + string.digits
+    return "".join(secrets.choice(alphabet) for _ in range(length))

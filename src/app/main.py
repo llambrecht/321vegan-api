@@ -2,7 +2,16 @@ from fastapi import FastAPI,Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
-from app.routes import auth_router, account_router, user_router, brand_router, product_router, cosmetic_router
+from app.routes import (
+    auth_router, 
+    account_router, 
+    user_router, 
+    brand_router, 
+    product_router, 
+    cosmetic_router, 
+    apiclient_router,
+    external_router,
+)
 from app.log import get_logger
 
 app = FastAPI(title="321Vegan API", version="0.1.0")
@@ -40,4 +49,6 @@ app.include_router(user_router, prefix="/users", tags=["user"])
 app.include_router(brand_router, prefix="/brands", tags=["brand"])
 app.include_router(product_router, prefix="/products", tags=["product"])
 app.include_router(cosmetic_router, prefix="/cosmetics", tags=["cosmetic"])
+app.include_router(apiclient_router, prefix="/apiclients", tags=["apiclient"])
+app.include_router(external_router, prefix="/external", tags=["external"])
 

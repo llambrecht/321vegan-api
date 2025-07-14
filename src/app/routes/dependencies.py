@@ -1,7 +1,7 @@
 from typing import Tuple, List
 
-from fastapi import HTTPException, Depends, Query, status
-from fastapi.security import OAuth2PasswordBearer
+from fastapi import HTTPException, Depends, Query, status, Security
+from fastapi.security import OAuth2PasswordBearer, APIKeyHeader
 
 from jose import jwt
 
@@ -9,15 +9,15 @@ from pydantic import ValidationError
 from sqlalchemy.orm import Session
 
 from app.config import settings
-from app.crud import user_crud
+from app.crud import user_crud, apiclient_crud
 from app.database import get_db
 from app.exceptions import _get_credential_exception
-from app.models import User, Base
-from app.schemas.auth import TokenPayload
+from app.models import User, Base, ApiClient
+from app.schemas.auth import TokenPayload, ApiKeyPayload
 
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
-
+x_api_key = APIKeyHeader(name="x-api-key", auto_error=False)
 
 def get_pagination_params(
     page: int = Query(1, ge=1), page_size: int = Query(5, ge=1, le=100)
@@ -143,6 +143,78 @@ def get_current_superuser(
             details="The user does not have enough privileges",
         )
     return current_user
+
+
+def get_api_key(api_key: str = Security(x_api_key)) -> str:
+    """
+    Retrieve the api key from the provided key.
+
+    Parameters:
+        api_key (str, optional): The API key. Defaults to the value returned by the `x_api_key` dependency.
+
+    Returns:
+        str: The api key payload.
+
+    Raises:
+        HTTPException: If there is an error retrieving the api key or validating the payload.
+    """
+    try:
+        if not api_key:
+            raise _get_credential_exception(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Missing or invalid API key"
+            )
+        key_data = ApiKeyPayload(**{"api_key": api_key})
+    except Exception as e:
+        raise _get_credential_exception(status_code=status.HTTP_401_UNAUTHORIZED) from e
+    return key_data
+
+
+def get_current_client(
+    db: Session = Depends(get_db), api_key: ApiKeyPayload = Depends(get_api_key)
+) -> ApiClient:
+    """
+    Retrieves the current client based on the provided database session and authentication api key.
+
+    Parameters:
+        db (Session): The database session to use for querying the client information.
+        api_key (ApiKeyPayload): The authentication key containing the client's identification.
+
+    Returns:
+        ApicLient: The ApicLient object representing the current authenticated ApicLient.
+
+    Raises:
+        HTTPException: If the api client is not found in the database.
+    """
+    client = apiclient_crud.get_one(db, ApiClient.api_key == api_key.api_key)
+    if client is None:
+        raise _get_credential_exception(
+            status_code=status.HTTP_404_NOT_FOUND, details="Client not found"
+        )
+    return client
+
+
+def get_current_active_client(
+    current_client: ApiClient = Depends(get_current_client),
+) -> ApiClient:
+    """Returns the current active api client.
+
+    Parameters:
+        current_client (ApiClient, optional): The current api client.
+
+    Returns:
+        ApiClient: The current active api client.
+
+    Raises:
+        HTTPException: If the api client is not active
+
+    """
+    if not apiclient_crud.is_active_client(current_client):
+        raise _get_credential_exception(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            details="Inactive client",
+        )
+    return current_client
 
 
 class RoleChecker:

@@ -19,9 +19,7 @@ class ProductBase(BaseModel):
     state: Optional[str] = None
 
 class ProductCreate(ProductBase):
-    status: str = "MAYBE_VEGAN"
-    biodynamic: bool = False
-    state: str = "CREATED"
+    pass
 
 class ProductUpdate(ProductBase):
     pass
