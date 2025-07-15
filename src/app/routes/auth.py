@@ -9,7 +9,7 @@ from app import security
 from app.exceptions import _get_credential_exception
 from app.config import settings
 from app.models import User
-from app.routes.dependencies import get_token, get_current_active_user, get_current_user
+from app.routes.dependencies import get_token
 from app.crud import user_crud
 from app.database import get_db
 from app.schemas.auth import Token, TokenPayload

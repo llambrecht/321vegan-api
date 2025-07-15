@@ -1,9 +1,10 @@
-from typing import List, Optional, Tuple
+from typing import Annotated, List, Optional, Tuple
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Body, Depends, HTTPException, status
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.routes.dependencies import get_current_active_user, get_current_superuser, get_pagination_params, get_sort_by_params, RoleChecker
+from app.routes.dependencies import get_current_superuser, get_pagination_params, get_sort_by_params, RoleChecker
 from app.crud import user_crud
 from app.database.db import get_db
 from app.log import get_logger
@@ -141,7 +142,20 @@ def fetch_user_by_email(email: str, db: Session = Depends(get_db)):
 
 @router.post("/", response_model=UserOut, status_code=status.HTTP_201_CREATED, dependencies=[Depends(RoleChecker(["admin"]))])
 def create_user(
-    user_create: UserCreate,
+    user_create: Annotated[
+        UserCreate,
+        Body(
+            examples=[
+                {
+                    "role": "user",
+                    "nickname": "User name",
+                    "email": "example@example.com",
+                    "password": "12345678",
+                    "is_active": True,
+                }
+            ]
+        ),
+    ],
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_superuser),
 ):
@@ -168,16 +182,41 @@ def create_user(
             detail=f"The user with this {user_create.email} already exists \
             in the system",
         )
-    dict_user_create = user_create.model_dump()
-    dict_user_create['password'] = get_password_hash(user_create.password)
-    user_in = UserCreate(
-        **dict_user_create,
-    )
-    user = user_crud.create(db, user_in)
+    try:
+        dict_user_create = user_create.model_dump()
+        dict_user_create['password'] = get_password_hash(user_create.password)
+        user_in = UserCreate(
+            **dict_user_create,
+        )
+        user = user_crud.create(db, user_in)
+        
+    except IntegrityError as e:
+        error_message = str(e.orig)
+        if "unique constraint" in error_message.lower(): 
+            if "email" in error_message.lower():
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail=f"User with EMAIL {user_create.email} already exists",
+                ) from e
+            elif "nickname" in error_message.lower():
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail=f"User with NICKNAME {user_create.nickname} already exists",
+                ) from e
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Data integrity error: {error_message}",
+            ) from e
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Couldn't create user. Error: {str(e)}",
+        ) from e 
     return user
 
 
-@router.delete("/{id}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(RoleChecker(["contributor", "admin"]))])
+@router.delete("/{id}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(RoleChecker([ "admin"]))])
 def delete_user(
     id: int,
     db: Session = Depends(get_db),

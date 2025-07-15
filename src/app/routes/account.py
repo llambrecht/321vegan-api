@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
-from app.routes.dependencies import get_current_active_user, get_pagination_params, get_sort_by_params
+from app.routes.dependencies import get_current_active_user
 from app.crud import user_crud
 from app.database.db import get_db
 from app.log import get_logger

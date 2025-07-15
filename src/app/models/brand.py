@@ -1,8 +1,7 @@
-from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, DateTime
+from sqlalchemy import Column, Integer, String, ForeignKey, DateTime
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from app.database.base_class import Base
-import enum
 
 class Brand(Base):
     __tablename__ = "brands"

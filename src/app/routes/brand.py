@@ -1,14 +1,14 @@
 from typing import Annotated, List, Optional, Tuple
 
-from fastapi import APIRouter, Request, Body, Depends, HTTPException, status
+from fastapi import APIRouter, Body, Depends, HTTPException, status
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.routes.dependencies import get_current_active_user, get_current_superuser, get_pagination_params, get_sort_by_params, RoleChecker
+from app.routes.dependencies import get_current_active_user, get_pagination_params, get_sort_by_params, RoleChecker
 from app.crud import brand_crud
 from app.database.db import get_db
 from app.log import get_logger
-from app.models import Brand, User
+from app.models import Brand
 from app.schemas.brand import BrandCreate, BrandOut, BrandUpdate, BrandOutPaginated, BrandFilters
 
 log = get_logger(__name__)
@@ -115,7 +115,6 @@ def fetch_brand_by_id(
     status_code=status.HTTP_201_CREATED,
     response_model_exclude_none=True,
     response_model_exclude_unset=True,
-    dependencies=[Depends(RoleChecker(["contributor", "admin"]))]
 )
 def create_brand(
     brand_create: Annotated[
@@ -145,6 +144,7 @@ def create_brand(
 
     Raises:
         HTTPException: If a brand with same ean provided exists.
+        HTTPException: If a parent brand provided does not exists.
         HTTPException: If there is an error creating
             the brand in the database.
     """
@@ -153,10 +153,22 @@ def create_brand(
             db, brand_create
         )
     except IntegrityError as e:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail=f"Brand with name {brand_create.name} already exists",
-        ) from e
+        error_message = str(e.orig)
+        if "unique constraint" in error_message.lower() and "name" in error_message.lower():
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=f"Brand with name {brand_create.name} already exists",
+            ) from e
+        elif "foreign key constraint" in error_message.lower() and "parent_id" in error_message.lower():
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Brand with id {brand_create.parent_id} does not exist",
+            ) from e
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Data integrity error: {error_message}",
+            ) from e
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

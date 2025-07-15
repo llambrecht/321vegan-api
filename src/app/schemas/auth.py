@@ -15,6 +15,7 @@ class TokenPayload(BaseModel):
 
     sub: Optional[int] = None
 
+
 class ApiKeyPayload(BaseModel):
     """Payload for Api Access Key"""
 

@@ -1,7 +1,7 @@
-from sqlalchemy import Column, Integer, String, Text, Boolean, DateTime
+from sqlalchemy import Column, Integer, String, Boolean, DateTime
 from datetime import datetime
 from app.database.base_class import Base
-from app.security import generate_api_key
+
 
 class ApiClient(Base):
     __tablename__ = "api_clients"

@@ -1,14 +1,14 @@
 from typing import Annotated, List, Optional, Tuple
 
-from fastapi import APIRouter, Request, Body, Depends, HTTPException, status
+from fastapi import APIRouter, Body, Depends, HTTPException, status
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.routes.dependencies import get_current_superuser, get_pagination_params, get_sort_by_params, RoleChecker
+from app.routes.dependencies import get_current_superuser, get_pagination_params, get_sort_by_params
 from app.crud import apiclient_crud
 from app.database.db import get_db
 from app.log import get_logger
-from app.models import ApiClient, User
+from app.models import ApiClient
 from app.schemas.apiclient import ApiClientCreate, ApiClientOut, ApiClientUpdate, ApiClientOutPaginated, ApiClientFilters
 
 log = get_logger(__name__)
@@ -148,7 +148,6 @@ def create_api_client(
         client_create (ApiClientCreate): The api client data to be created.
         db (Session, optional): The database session.
             Defaults to Depends(get_db).
-
 
     Returns:
         ApiClientOut: The created api client.
