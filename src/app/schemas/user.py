@@ -42,6 +42,8 @@ class UserOutPaginated(BaseModel):
 
 class UserFilters(BaseModel):
     nickname: Optional[str] = None
+    nickname__ilike: Optional[str] = None
+    nickname__contains: Optional[str] = None
     role: Optional[str] = None
     status: Optional[str] = None
     is_active: Optional[str] = None

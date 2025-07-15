@@ -4,7 +4,7 @@ from fastapi import APIRouter, Body, Depends, HTTPException, status
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.routes.dependencies import get_current_active_user, get_pagination_params, get_sort_by_params, RoleChecker
+from app.routes.dependencies import get_current_active_user, get_pagination_params, get_sort_by_params, RoleChecker, get_current_active_user_or_client
 from app.crud import product_crud
 from app.database.db import get_db
 from app.log import get_logger
@@ -14,11 +14,11 @@ from app.schemas.product import ProductCreate, ProductOut, ProductUpdate, Produc
 
 log = get_logger(__name__)
 
-router = APIRouter(dependencies=[Depends(get_current_active_user)])
+router = APIRouter()
 
 
 @router.get(
-    "/", response_model=List[Optional[ProductOut]], status_code=status.HTTP_200_OK
+    "/", response_model=List[Optional[ProductOut]], status_code=status.HTTP_200_OK, dependencies=[Depends(get_current_active_user)]
 )
 def fetch_all_products(db: Session = Depends(get_db)) -> List[Optional[ProductOut]]:
     """
@@ -37,13 +37,13 @@ def fetch_all_products(db: Session = Depends(get_db)) -> List[Optional[ProductOu
 
 
 @router.get(
-    "/search", response_model=Optional[ProductOutPaginated], status_code=status.HTTP_200_OK
+    "/search", response_model=Optional[ProductOutPaginated], status_code=status.HTTP_200_OK, dependencies=[Depends(get_current_active_user)]
 )
 def fetch_paginated_products(
     db: Session = Depends(get_db),
     pagination_params: Tuple[int, int] = Depends(get_pagination_params),
     orderby_params: Tuple[str, bool] = Depends(get_sort_by_params),
-    filter_params: ProductFilters = Depends()
+    filter_params: ProductFilters = Depends(),
 ) -> Optional[ProductOutPaginated]:
     """
     Fetch many products.
@@ -83,6 +83,7 @@ def fetch_paginated_products(
     "/{id}",
     response_model=Optional[ProductOut],
     status_code=status.HTTP_200_OK,
+    dependencies=[Depends(get_current_active_user)]
 )
 def fetch_product_by_id(
     id: int, db: Session = Depends(get_db)
@@ -115,6 +116,7 @@ def fetch_product_by_id(
     status_code=status.HTTP_201_CREATED,
     response_model_exclude_none=True,
     response_model_exclude_unset=True,
+    dependencies=[Depends(get_current_active_user_or_client)]
 )
 def create_product(
     product_create: Annotated[
@@ -149,6 +151,7 @@ def create_product(
 
     Raises:
         HTTPException: If a product with same ean provided exists.
+        HTTPException: If a brand provided does not exists.
         HTTPException: If there is an error creating
             the product in the database.
     """

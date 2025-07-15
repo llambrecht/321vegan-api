@@ -1,37 +1,32 @@
-from pydantic import BaseModel
 from typing import List, Optional
+from pydantic import BaseModel, Field
 from datetime import datetime, timezone
 
-class Brand(BaseModel):
-    id: int
+class ApiClientBase(BaseModel):
+    api_key: str = Field(..., min_length=1)
+    is_active: bool = False
+
+
+class ApiClientCreate(ApiClientBase):
     name: str
 
 
-class BrandBase(BaseModel):
+class ApiClientUpdate(ApiClientBase):
     name: str
-    parent_id: Optional[int] = None
 
 
-class BrandCreate(BrandBase):
-    pass
-
-
-class BrandUpdate(BrandBase):
-    pass
-
-
-class BrandInDB(BrandBase):
-    id: int
-    created_at: datetime
-    updated_at: datetime
-
-
-class BrandOut(BaseModel):
+class ApiClientInDB(ApiClientBase):
     id: int
     created_at: datetime
     updated_at: datetime
     name: str
-    parent: Optional[Brand] = None
+
+
+class ApiClientOut(ApiClientBase):
+    id: int
+    created_at: datetime
+    updated_at: datetime
+    name: str
 
     class Config:
         from_attributes = True
@@ -40,18 +35,19 @@ class BrandOut(BaseModel):
         }
 
 
-class BrandOutPaginated(BaseModel):
-    items: List[BrandOut]
+class ApiClientOutPaginated(BaseModel):
+    items: List[ApiClientOut]
     total: int
     page: int
     size: int
     pages: int
 
 
-class BrandFilters(BaseModel):
+class ApiClientFilters(BaseModel):
     name: Optional[str] = None
     name__ilike: Optional[str] = None
     name__contains: Optional[str] = None
-    parent_id: Optional[int] = None
-    parent___name__contains: Optional[str] = None
-
+    api_key: Optional[str] = None
+    api_key__ilike: Optional[str] = None
+    api_key__contains: Optional[str] = None
+    is_active: Optional[str] = None
