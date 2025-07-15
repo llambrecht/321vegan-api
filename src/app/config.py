@@ -18,13 +18,13 @@ class Settings(BaseSettings):
     )
     ENV: str
 
-    DATABASE_URL: str
-
     POSTGRES_HOST: str
     POSTGRES_USER: str
     POSTGRES_PASSWORD: str
     POSTGRES_DB: str
     POSTGRES_PORT: int
+
+    DATABASE_URL: str
 
     PGADMIN_DEFAULT_EMAIL: str
     PGADMIN_DEFAULT_PASSWORD: str
