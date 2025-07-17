@@ -2,6 +2,9 @@
 .vscode
 .env
 
+# DB Backups
+db_backups/
+
 # macOS
 .DS_Store
 
