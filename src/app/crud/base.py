@@ -46,7 +46,11 @@ class CRUDRepository:
             "retrieving total records for %s",
             self._model.__name__,
         )
-        return db.query(self._model).count()
+        query = db.query(self._model)
+        # filters
+        query = buildQueryFilters(self._model, query, kwargs)
+
+        return query.count()
 
     def get_one(self, db: Session, *args, **kwargs) -> Optional[ORMModel]:
         """
