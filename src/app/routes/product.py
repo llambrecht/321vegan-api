@@ -10,7 +10,7 @@ from app.database.db import get_db
 from app.log import get_logger
 from app.models import Product
 
-from app.schemas.product import ProductCreate, ProductOut, ProductUpdate, ProductOutPaginated, ProductFilters
+from app.schemas.product import ProductCreate, ProductOut, ProductUpdate, ProductOutPaginated, ProductOutCount, ProductFilters
 
 log = get_logger(__name__)
 
@@ -35,6 +35,33 @@ def fetch_all_products(db: Session = Depends(get_db)) -> List[Optional[ProductOu
     """
     return product_crud.get_all(db)
 
+@router.get(
+    "/count", response_model=Optional[ProductOutCount], status_code=status.HTTP_200_OK, dependencies=[Depends(get_current_active_user)]
+)
+def fetch_count_products(
+    db: Session = Depends(get_db),
+    filter_params: ProductFilters = Depends(),
+) -> Optional[ProductOutCount]:
+    """
+    Fetch how many products.
+
+    This function fetches total product count from the
+    database based on the filters parameters.
+
+    Parameters:
+        db (Session): The database session.
+        filter_params (ProductFilters): The filters parameters.
+
+    Returns:
+        Optional[ProductOutCount]: The total count of products fetched from the database with filter datas.
+    """
+    total = product_crud.count(
+        db,
+        **filter_params.model_dump(exclude_none=True)
+    )
+    return {
+        "total": total
+    }
 
 @router.get(
     "/search", response_model=Optional[ProductOutPaginated], status_code=status.HTTP_200_OK, dependencies=[Depends(get_current_active_user)]

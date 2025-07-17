@@ -57,6 +57,11 @@ class ProductOutPaginated(BaseModel):
     size: int
     pages: int
 
+
+class ProductOutCount(BaseModel):
+    total: int
+
+
 class ProductFilters(BaseModel):
     ean: Optional[str] = None
     name: Optional[str] = None
