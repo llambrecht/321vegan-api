@@ -183,7 +183,6 @@ def create_error_report(
         ErrorReportOut: The created error report.
 
     Raises:
-        HTTPException: If an error report with same EAN already exists.
         HTTPException: If there is an error creating
             the error report in the database.
     """
