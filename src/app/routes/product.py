@@ -137,6 +137,33 @@ def fetch_product_by_id(
     return product
 
 
+@router.get("/ean/{ean}", response_model=ProductOut, status_code=status.HTTP_200_OK, dependencies=[Depends(get_current_active_user)])
+def fetch_product_by_ean(ean: str, db: Session = Depends(get_db)):
+    """
+    Fetches a product from the database based on the provided ean.
+
+    Parameters:
+        ean (str): The ean of the product.
+        db (Session, optional): The database session.
+        Defaults to the result of calling `get_db`.
+
+    Returns:
+        ProductOut: The product object fetched from the database.
+
+    Raises:
+        HTTPException: If no product is found with the provided ean,
+            an HTTP 404 Not Found exception is raised.
+        HTTPException: If the user does not have enough
+            permissions to access to this endpoint.
+    """
+    product = product_crud.get_product_by_ean(db, ean=ean)
+    if not product:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail=f"Product with {ean} not found"
+        )
+    return product
+
+
 @router.post(
     "/",
     response_model=ProductOut,
