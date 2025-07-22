@@ -119,12 +119,6 @@ async def export_products_to_sqlite(
         skipped_count = 0
         
         for product in published_products:
-            # Skip products without EAN code
-            if not product.ean or not product.ean.strip():
-                log.warning(f"Skipping product {product.id}: missing EAN code")
-                skipped_count += 1
-                continue
-            
             # Prepare data for export
             code = product.ean.strip()
             name = product.name.strip() if product.name else None
@@ -248,9 +242,7 @@ async def export_cosmetics_to_sqlite(
     - cf: Y (cruelty free) or N (not cruelty free)
     """
     
-    try:
-        log.info(f"User {current_user.email} requested cosmetics SQLite export")
-        
+    try:        
         # Temp SQL file
         temp_fd, temp_path = tempfile.mkstemp(suffix='.db', prefix='cosmetics_')
         os.close(temp_fd)
@@ -270,13 +262,7 @@ async def export_cosmetics_to_sqlite(
         exported_count = 0
         skipped_count = 0
         
-        for cosmetic in all_cosmetics:
-            # Skip cosmetics without brand name (should not happen)
-            if not cosmetic.brand_name or not cosmetic.brand_name.strip():
-                log.warning(f"Skipping cosmetic {cosmetic.id}: missing brand name")
-                skipped_count += 1
-                continue
-            
+        for cosmetic in all_cosmetics:            
             # Prepare data for export
             brand = cosmetic.brand_name.strip()
             vegan = "Y" if cosmetic.is_vegan else "N"
