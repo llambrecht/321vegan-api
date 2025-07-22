@@ -94,9 +94,7 @@ async def export_products_to_sqlite(
     - problem: problem_description for non-vegan products
     """
     
-    try:
-        log.info(f"User {current_user.email} requested SQLite export")
-        
+    try:        
         # Create temporary SQLite file
         temp_fd, temp_path = tempfile.mkstemp(suffix='.db', prefix='vegan_products_')
         os.close(temp_fd)
@@ -116,8 +114,6 @@ async def export_products_to_sqlite(
                 ProductState.WAITING_REPLY
             ])
         ).all()
-        
-        log.info(f"Found {len(published_products)} products for export (PUBLISHED, NEED_CONTACT, WAITING_REPLY)")
         
         exported_count = 0
         skipped_count = 0
@@ -154,15 +150,12 @@ async def export_products_to_sqlite(
         # Commit changes
         sqlite_conn.commit()
         sqlite_conn.close()
-        
-        log.info(f"Export completed: {exported_count} exported, {skipped_count} skipped")
-        
-        # Return the file as download
+                
         return FileResponse(
             path=temp_path,
             filename="vegan_products.db",
             media_type="application/octet-stream",
-            background=lambda: os.unlink(temp_path)  # Clean up temp file after response
+            background=lambda: os.unlink(temp_path)
         )
         
     except Exception as e:
@@ -309,12 +302,11 @@ async def export_cosmetics_to_sqlite(
         
         log.info(f"Cosmetics export completed: {exported_count} exported, {skipped_count} skipped")
         
-        # Return the file as download
         return FileResponse(
             path=temp_path,
             filename="vegan_cosmetics.db",
             media_type="application/octet-stream",
-            background=lambda: os.unlink(temp_path)  # Clean up temp file after response
+            background=lambda: os.unlink(temp_path)
         )
         
     except Exception as e:
