@@ -10,7 +10,8 @@ from app.routes import (
     product_router, 
     cosmetic_router, 
     apiclient_router,
-    error_report_router
+    error_report_router,
+    export_router
 )
 from app.log import get_logger
 
@@ -51,3 +52,4 @@ app.include_router(product_router, prefix="/products", tags=["product"])
 app.include_router(cosmetic_router, prefix="/cosmetics", tags=["cosmetic"])
 app.include_router(apiclient_router, prefix="/apiclients", tags=["apiclient"])
 app.include_router(error_report_router, prefix="/error-reports", tags=["error_report"])
+app.include_router(export_router, prefix="/export", tags=["export"])
