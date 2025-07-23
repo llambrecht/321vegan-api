@@ -228,6 +228,24 @@ def update_api_client(
 
     try:
         client = apiclient_crud.update(db, client, client_update)
+    except IntegrityError as e:
+        error_message = str(e.orig)
+        if "unique constraint" in error_message.lower():
+            if "api_key" in error_message.lower():
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail=f"Api client with KEY {client_create.api_key} already exists",
+                ) from e
+            if "name" in error_message.lower():
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail=f"Api client with NAME {client_create.name} already exists",
+                ) from e
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Data integrity error: {error_message}",
+            ) from e
     except Exception as e:  
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

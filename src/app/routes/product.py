@@ -276,6 +276,23 @@ def update_product(
 
     try:
         product = product_crud.update(db, product, product_update)
+    except IntegrityError as e:
+        error_message = str(e.orig)
+        if "unique constraint" in error_message.lower() and "ean" in error_message.lower():
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=f"Product with EAN {product_create.ean} already exists",
+            ) from e
+        elif "foreign key constraint" in error_message.lower() and "brand_id" in error_message.lower():
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Brand with id {product_create.brand_id} does not exist",
+            ) from e
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Data integrity error: {error_message}",
+            ) from e
     except Exception as e:  
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

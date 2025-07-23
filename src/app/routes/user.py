@@ -290,6 +290,24 @@ def update_user(
         )
     try:
         user = user_crud.update(db, user, user_update)
+    except IntegrityError as e:
+        error_message = str(e.orig)
+        if "unique constraint" in error_message.lower(): 
+            if "email" in error_message.lower():
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail=f"User with EMAIL {user_update.email} already exists",
+                ) from e
+            elif "nickname" in error_message.lower():
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail=f"User with NICKNAME {user_update.nickname} already exists",
+                ) from e
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Data integrity error: {error_message}",
+            ) from e
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

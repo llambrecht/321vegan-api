@@ -57,10 +57,16 @@ def create_cosmetic(
         cosmetic = cosmetic_crud.create(db, cosmetic_create)
     except IntegrityError as e:
         error_message = str(e.orig)
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Data integrity error: {error_message}",
-        ) from e
+        if "unique constraint" in error_message.lower() and "brand_name" in error_message.lower():
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=f"Cosmetic with brand name {cosmetic_create.brand_name} already exists",
+            ) from e
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Data integrity error: {error_message}",
+            ) from e
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -177,6 +183,18 @@ def update_cosmetic(
 
     try:
         cosmetic = cosmetic_crud.update(db, cosmetic, cosmetic_update)
+    except IntegrityError as e:
+        error_message = str(e.orig)
+        if "unique constraint" in error_message.lower() and "brand_name" in error_message.lower():
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=f"Cosmetic with brand name {cosmetic_update.brand_name} already exists",
+            ) from e
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Data integrity error: {error_message}",
+            ) from e
     except Exception as e:  
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
