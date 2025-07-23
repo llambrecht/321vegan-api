@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.routes.dependencies import get_current_active_user
@@ -76,6 +77,18 @@ def update_current_active_user(
             **dict_user_update
         )
         user = user_crud.update(db, active_user, user_in)
+    except IntegrityError as e:
+        error_message = str(e.orig)
+        if "unique constraint" in error_message.lower() and "nickname" in error_message.lower(): 
+            raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail=f"User with NICKNAME {user_in.nickname} already exists",
+                ) from e   
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Data integrity error: {error_message}",
+            ) from e
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
