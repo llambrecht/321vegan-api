@@ -1,6 +1,9 @@
+fastapi
+uvicorn
+sqlalchemy
+email-validator
 python-dotenv
 python-jose[cryptography]
 passlib[bcrypt]
 python-multipart
 pydantic-settings
-pydantic[email]
