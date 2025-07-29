@@ -1,6 +1,6 @@
 from typing import Annotated, List, Optional, Tuple
 
-from fastapi import APIRouter, Body, Depends, HTTPException, status
+from fastapi import APIRouter, Body, Depends, HTTPException, Query, status
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -10,6 +10,7 @@ from app.database.db import get_db
 from app.log import get_logger
 from app.models import Brand
 from app.schemas.brand import BrandCreate, BrandOut, BrandUpdate, BrandOutPaginated, BrandFilters
+from app.utils.fuzzy_match import find_closest_brand
 
 log = get_logger(__name__)
 
@@ -259,3 +260,13 @@ def delete_brand(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Couldn't delete brand with id {id}. Error: {str(e)}",
         ) from e
+
+@router.get("/lookalike")
+def get_lookalike_brand(name: str = Query(..., description="Brand name to search for")):
+    """
+    Returns the closest matching brand name from the CSV file.
+    """
+    match = find_closest_brand(name)
+    if match:
+        return {"brand": match}
+    return {}

@@ -2,6 +2,7 @@ from fastapi import FastAPI,Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+# from app.routes import brand
 from app.routes import (
     auth_router, 
     account_router, 
@@ -10,7 +11,8 @@ from app.routes import (
     product_router, 
     cosmetic_router, 
     apiclient_router,
-    error_report_router
+    error_report_router,
+    
 )
 from app.log import get_logger
 
@@ -51,3 +53,4 @@ app.include_router(product_router, prefix="/products", tags=["product"])
 app.include_router(cosmetic_router, prefix="/cosmetics", tags=["cosmetic"])
 app.include_router(apiclient_router, prefix="/apiclients", tags=["apiclient"])
 app.include_router(error_report_router, prefix="/error-reports", tags=["error_report"])
+
