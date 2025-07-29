@@ -87,3 +87,6 @@ dmypy.json
 
 # Cython debug symbols
 cython_debug/
+
+# Ignore all executables in the Scripts folder
+src/cleanenv/Scripts/*.exe
