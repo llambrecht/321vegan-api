@@ -1,4 +1,4 @@
-.PHONY: install run up stop down initdb migration-create migration-apply migration-down create-admin
+.PHONY: install run up stop down initdb migration-create migration-apply migration-down migration-current migration-history create-admin
 
 ifneq (,$(wildcard ./.env))
     include .env
@@ -43,6 +43,12 @@ migration-apply: ## Apply alambic new migration
 
 migration-down: ## Downgrade alambic last applied migration
 	docker exec -it 321veganapi poetry run alembic downgrade -1
+
+migration-current: ## Show alambic last applied migration
+	docker exec -it 321veganapi poetry run alembic current
+
+migration-history: ## Show alambic history
+	docker exec -it 321veganapi poetry run alembic history
 
 create-admin: ## Create the admin user
 	docker exec -it 321veganapi poetry run python -m scripts.create_admin_user
