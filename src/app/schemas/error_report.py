@@ -1,7 +1,7 @@
 from pydantic import BaseModel, Field
 from typing import List, Optional
 from datetime import datetime, timezone
-
+from app.schemas.product import Product
 
 class ErrorReportBase(BaseModel):
     ean: str = Field(..., min_length=1)
@@ -34,6 +34,7 @@ class ErrorReportOut(BaseModel):
     comment: str
     contact: Optional[str] = None
     handled: bool
+    product: Optional[Product] = None
 
     class Config:
         from_attributes = True

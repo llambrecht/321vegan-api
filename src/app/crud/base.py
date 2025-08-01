@@ -19,7 +19,6 @@ UpdateSchemaType = TypeVar("UpdateSchemaType", bound=BaseModel)
 log = get_logger(__name__)
 
 
-
 class CRUDRepository:
     """Base interface for CRUD operations."""
 
@@ -122,10 +121,11 @@ class CRUDRepository:
         # filters
         query = buildQueryFilters(self._model, query, kwargs)
 
+        total = query.count()
+
         # sort by
         model_attribute = getattr(self._model, order_by, 'created_at')
-
-        total = query.count()
+        
         items = query.\
             order_by(desc(model_attribute) if descending else asc(model_attribute)).\
             offset(skip).\

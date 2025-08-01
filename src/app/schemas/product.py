@@ -1,6 +1,8 @@
 from pydantic import BaseModel, Field
+from fastapi import Query
 from typing import List, Optional
 from app.schemas.brand import Brand
+from app.schemas.checking import CheckingOutForProduct
 from datetime import datetime, timezone
 
 class Product(BaseModel):
@@ -43,6 +45,9 @@ class ProductOut(BaseModel):
     biodynamic: bool
     state: str 
     created_from_off: bool
+    checkings: List[CheckingOutForProduct]
+    last_requested_on: Optional[datetime] = None
+    last_requested_by: Optional[str] = None
 
     class Config:
         from_attributes = True
@@ -71,5 +76,7 @@ class ProductFilters(BaseModel):
     brand___name__contains: Optional[str] = None
     status: Optional[str] = None
     state: Optional[str] = None
+    state__in: Optional[List[str]] = Field(Query(None))
     created_at: Optional[str] = None
     created_at__gt: Optional[str] = None
+    last_requested_by__contains: Optional[str] = None

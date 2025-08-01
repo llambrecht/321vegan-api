@@ -74,7 +74,9 @@ def buildQueryFilters(model: Type[ORMModel], query: Query, filter_args: Dict) ->
                     relationship = getattr(model, relation_field)
                     # aliased for self relationship case
                     r_class = aliased(relationship.property.mapper.class_)
-                    
+                    # handle recursive cross-relationship
+                    if RELATION_SPLITTER in rest:
+                        query = buildQueryFilters(r_class, query.join(r_class, relationship), {rest: value})
                     if OPERATOR_SPLITTER in rest:
                         r_field, ope = rest.rsplit(OPERATOR_SPLITTER, 1)
                     else:

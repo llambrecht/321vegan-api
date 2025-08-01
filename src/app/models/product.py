@@ -1,8 +1,13 @@
-from sqlalchemy import Column, Integer, String, Text, Boolean, ForeignKey, Enum, DateTime
-from sqlalchemy.orm import relationship
-from datetime import datetime
-from app.database.base_class import Base
 import enum
+from datetime import datetime
+from typing import Optional, cast
+from sqlalchemy import Column, Integer, String, Text, Boolean, ForeignKey, Enum, DateTime, select, desc
+from sqlalchemy.ext.hybrid import hybrid_property
+from sqlalchemy.orm import relationship
+from app.database.base_class import Base
+from app.models.checking import Checking
+from app.models.brand import Brand
+from app.models.user import User
 
 class ProductState(str, enum.Enum):
     CREATED = "CREATED"
@@ -34,4 +39,70 @@ class Product(Base):
     biodynamic = Column(Boolean, default=False)
     state = Column(Enum(ProductState), default=ProductState.CREATED)
     created_from_off = Column(Boolean, default=False)
+    checkings = relationship("Checking", 
+        back_populates="product",
+        cascade="all, delete",
+        passive_deletes=True, 
+        lazy="selectin", 
+        order_by=lambda: desc(Checking.requested_on)) 
+    
+    @hybrid_property
+    def brand_name(self):
+        if self.brand:
+            return self.brand.name
+        else:
+            return None
 
+    @brand_name.inplace.expression
+    @classmethod
+    def _brand_name_expression(cls):
+        return (
+            select(Brand.name)
+            .where(Brand.id == cls.brand_id)
+            .as_scalar()
+        )
+
+    @hybrid_property
+    def last_requested_on(self):
+        if self.checkings:
+            return max(
+                self.checkings, 
+                key=lambda checking: checking.requested_on
+            ).requested_on
+        else:
+            return None
+
+    @last_requested_on.inplace.expression
+    @classmethod
+    def _last_requested_on_expression(cls):
+        return (
+            select(Checking.requested_on)
+            .where(Checking.product_id == cls.id)
+            .order_by(Checking.requested_on.desc())
+            .limit(1)
+            .as_scalar()
+        )
+
+    @hybrid_property
+    def last_requested_by(self):
+        if self.checkings:
+            return max(
+                self.checkings, 
+                key=lambda checking: checking.requested_on
+            ).user.nickname
+        else:
+            return None
+
+    @last_requested_by.inplace.expression
+    @classmethod
+    def _last_requested_by_expression(cls):
+        return (
+            select(User.nickname)
+            .where(Checking.product_id == cls.id)
+            .join(Checking.user)
+            .order_by(Checking.requested_on.desc())
+            .limit(1)
+            .as_scalar()
+        )
+    
+    

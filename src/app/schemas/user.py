@@ -26,6 +26,7 @@ class UserOut(UserBase):
     created_at: datetime
     updated_at: datetime
     avatar: Optional[str] = None
+    roles: List
 
     class Config:
         from_attributes = True

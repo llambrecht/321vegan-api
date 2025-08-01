@@ -1,4 +1,5 @@
-from fastapi import FastAPI,Request, status
+from urllib.parse import urlencode
+from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
@@ -11,7 +12,8 @@ from app.routes import (
     cosmetic_router, 
     apiclient_router,
     error_report_router,
-    export_router
+    export_router,
+    checking_router,
 )
 from app.log import get_logger
 
@@ -35,6 +37,18 @@ app.add_middleware(
 
 log = get_logger(__name__)
 
+@app.middleware("http")
+async def flatten_query_string_lists(request: Request, call_next):
+    """
+    Middleware to turn comma-delimited query parameter strings 
+    into repeated query parameters
+    """
+    flattened = []
+    for key, value in request.query_params.multi_items():
+        flattened.extend((key, entry) for entry in value.split(','))
+    request.scope["query_string"] = urlencode(flattened, doseq=True).encode("utf-8")
+    return await call_next(request)
+
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
     log.error(f"Validation error: {exc.errors()}")
@@ -53,3 +67,4 @@ app.include_router(cosmetic_router, prefix="/cosmetics", tags=["cosmetic"])
 app.include_router(apiclient_router, prefix="/apiclients", tags=["apiclient"])
 app.include_router(error_report_router, prefix="/error-reports", tags=["error_report"])
 app.include_router(export_router, prefix="/export", tags=["export"])
+app.include_router(checking_router, prefix="/checkings", tags=["checking"])

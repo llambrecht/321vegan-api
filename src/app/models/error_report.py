@@ -1,5 +1,6 @@
 from sqlalchemy import Column, Integer, String, Text, Boolean, ForeignKey, Enum, DateTime
 from sqlalchemy.orm import relationship
+from sqlalchemy.ext.hybrid import hybrid_property
 from datetime import datetime
 from app.database.base_class import Base
 
@@ -13,5 +14,9 @@ class ErrorReport(Base):
     comment = Column(String, nullable=False)
     contact = Column(String, nullable=True)
     handled = Column(Boolean, default=False)
-
+    # orm only foreignkey
+    product = relationship(
+        'Product', 
+        primaryjoin="foreign(ErrorReport.ean) == Product.ean"
+    )
 
