@@ -1,4 +1,5 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+from fastapi import Query
 from typing import List, Optional
 from datetime import datetime, timezone
 
@@ -52,6 +53,7 @@ class BrandFilters(BaseModel):
     name: Optional[str] = None
     name__ilike: Optional[str] = None
     name__contains: Optional[str] = None
+    name__in: Optional[List[str]] = Field(Query(None))
     parent_id: Optional[int] = None
     parent___name__contains: Optional[str] = None
 
