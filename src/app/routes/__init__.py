@@ -7,6 +7,7 @@ from app.routes.cosmetic import router as cosmetic_router
 from app.routes.apiclient import router as apiclient_router
 from app.routes.error_report import router as error_report_router
 from app.routes.export import router as export_router
+from app.routes.checking import router as checking_router
 
 
 __all__ = [
@@ -19,4 +20,5 @@ __all__ = [
     "apiclient_router",
     "error_report_router",
     "export_router",
+    "checking_router",
 ]

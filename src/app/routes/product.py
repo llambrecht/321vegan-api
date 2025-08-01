@@ -8,7 +8,8 @@ from app.routes.dependencies import get_current_active_user, get_pagination_para
 from app.crud import product_crud
 from app.database.db import get_db
 from app.log import get_logger
-from app.models import Product
+from app.models import Product, User
+from app.models.product import ProductState
 
 from app.schemas.product import ProductCreate, ProductOut, ProductUpdate, ProductOutPaginated, ProductOutCount, ProductFilters
 
@@ -247,7 +248,8 @@ def create_product(
 def update_product(
     id: int,
     product_update: ProductUpdate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    active_user: User = Depends(get_current_active_user),
 ):
     """
     Update a product by its ID.
@@ -275,6 +277,12 @@ def update_product(
         )
 
     try:
+        if active_user.is_contributor() and product.state == ProductState.PUBLISHED:
+            dict_product_update = product_update.model_dump()
+            dict_product_update['state'] = ProductState.WAITING_PUBLISH
+            product_update = ProductUpdate(
+                **dict_product_update,
+            )
         product = product_crud.update(db, product, product_update)
     except IntegrityError as e:
         error_message = str(e.orig)
