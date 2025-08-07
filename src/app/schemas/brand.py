@@ -54,6 +54,7 @@ class BrandFilters(BaseModel):
     name__ilike: Optional[str] = None
     name__contains: Optional[str] = None
     name__in: Optional[List[str]] = Field(Query(None))
+    name__iin: Optional[List[str]] = Field(Query(None))
     parent_id: Optional[int] = None
     parent___name__contains: Optional[str] = None
 
