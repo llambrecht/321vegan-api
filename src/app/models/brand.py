@@ -28,3 +28,9 @@ class Brand(Base):
     @classmethod
     def _parent_name_expression(cls):
         return Brand.parent
+
+    @property
+    def parent_name_tree(self) -> list:
+        if self.parent:
+            return [self.name] + self.parent.parent_name_tree
+        return [self.name]

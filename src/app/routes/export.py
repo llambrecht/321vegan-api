@@ -1,6 +1,7 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status as apiStatus
 from fastapi.responses import FileResponse, JSONResponse
 from sqlalchemy.orm import Session
+from starlette.background import BackgroundTask
 from typing import Optional
 import sqlite3
 import tempfile
@@ -32,7 +33,7 @@ def map_status_to_export_format(status: ProductStatus) -> str:
 def extract_brand_name(product: Product) -> Optional[str]:
     """Extract brand name from product - either from brand relationship or description."""
     if product.brand:
-        return product.brand.name
+        return ','.join(filter(None, [product.brand.name, product.brand.parent_name]))
     elif product.description:
         return product.description.strip()
     return None
@@ -149,7 +150,7 @@ async def export_products_to_sqlite(
             path=temp_path,
             filename="vegan_products.db",
             media_type="application/octet-stream",
-            background=lambda: os.unlink(temp_path)
+            background=BackgroundTask(os.unlink, temp_path)
         )
         
     except Exception as e:
@@ -157,7 +158,7 @@ async def export_products_to_sqlite(
         if 'temp_path' in locals() and os.path.exists(temp_path):
             os.unlink(temp_path)
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=apiStatus.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to export to SQLite: {str(e)}"
         )
 
@@ -223,7 +224,7 @@ async def get_export_statistics(
     except Exception as e:
         log.error(f"Error getting export statistics: {e}")
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=apiStatus.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to get export statistics: {str(e)}"
         )
 
@@ -292,7 +293,7 @@ async def export_cosmetics_to_sqlite(
             path=temp_path,
             filename="vegan_cosmetics.db",
             media_type="application/octet-stream",
-            background=lambda: os.unlink(temp_path)
+            background=BackgroundTask(os.unlink, temp_path)
         )
         
     except Exception as e:
@@ -300,7 +301,7 @@ async def export_cosmetics_to_sqlite(
         if 'temp_path' in locals() and os.path.exists(temp_path):
             os.unlink(temp_path)
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=apiStatus.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to export cosmetics to SQLite: {str(e)}"
         )
 
@@ -355,6 +356,6 @@ async def get_cosmetics_export_statistics(
     except Exception as e:
         log.error(f"Error getting cosmetics export statistics: {e}")
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=apiStatus.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to get cosmetics export statistics: {str(e)}"
         )
