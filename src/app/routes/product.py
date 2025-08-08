@@ -160,7 +160,7 @@ def fetch_product_by_ean(ean: str, db: Session = Depends(get_db)):
     product = product_crud.get_product_by_ean(db, ean=ean)
     if not product:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail=f"Product with {ean} not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail=f"Product with ean {ean} not found"
         )
     return product
 

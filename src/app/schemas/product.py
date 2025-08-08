@@ -74,6 +74,7 @@ class ProductFilters(BaseModel):
     name__contains: Optional[str] = None
     brand: Optional[str] = None
     brand___name__contains: Optional[str] = None
+    brand___name__lookalike: Optional[str] = None
     status: Optional[str] = None
     state: Optional[str] = None
     state__in: Optional[List[str]] = Field(Query(None))

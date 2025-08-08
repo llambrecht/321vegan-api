@@ -9,7 +9,7 @@ from app.crud import brand_crud
 from app.database.db import get_db
 from app.log import get_logger
 from app.models import Brand
-from app.schemas.brand import BrandCreate, BrandOut, BrandUpdate, BrandOutPaginated, BrandFilters
+from app.schemas.brand import BrandCreate, BrandOut, BrandUpdate, BrandOutPaginated, BrandFilters, BrandLookalikeFilter
 
 log = get_logger(__name__)
 
@@ -77,6 +77,34 @@ def fetch_paginated_brands(
         "size": size,
         "pages": pages
     }
+
+
+@router.get("/lookalike", response_model=Optional[BrandOut], status_code=status.HTTP_200_OK, dependencies=[Depends(get_current_active_user)])
+def fetch_brand_by_name(name_param: BrandLookalikeFilter = Depends(), db: Session = Depends(get_db)):
+    """
+    Fetches a brand from the database based on the provided name.
+
+    Parameters:
+        name_param (BrandLookalikeFilter): The name of the searched brand.
+        db (Session, optional): The database session.
+        Defaults to the result of calling `get_db`.
+
+    Returns:
+        Optional[BrandOut]: The brand object fetched from the database.
+
+    Raises:
+        HTTPException: If no brand is found with the provided name,
+            an HTTP 404 Not Found exception is raised.
+        HTTPException: If the user does not have enough
+            permissions to access to this endpoint.
+    """
+    brand = brand_crud.get_one_lookalike(db, name_param)
+    if not brand:
+        name = name_param.model_dump()['name']
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail=f"Brand with name {name} not found"
+        )
+    return brand
 
 
 @router.get(
