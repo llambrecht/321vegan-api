@@ -1,4 +1,3 @@
-version: "3.9"
 services:
   321vegandb:
     container_name: ${POSTGRES_HOST}

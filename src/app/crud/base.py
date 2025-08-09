@@ -5,7 +5,7 @@ This module contains the base interface for CRUD
 from typing import List, Optional, Type, TypeVar, Tuple
 
 from pydantic import BaseModel
-from sqlalchemy import desc, asc
+from sqlalchemy import desc, asc, func
 from sqlalchemy.orm import Session, RelationshipProperty, aliased
 from app.models import Base
 from app.security import get_password_hash
@@ -15,6 +15,7 @@ from app.crud.filters import buildQueryFilters
 ORMModel = TypeVar("ORMModel")
 CreateSchemaType = TypeVar("CreateSchemaType", bound=BaseModel)
 UpdateSchemaType = TypeVar("UpdateSchemaType", bound=BaseModel)
+FilterSchemaType = TypeVar("FilterSchemaType", bound=BaseModel)
 
 log = get_logger(__name__)
 
@@ -70,6 +71,37 @@ class CRUDRepository:
             self._model.__name__,
         )
         return db.query(self._model).filter(*args).filter_by(**kwargs).first()
+
+    def get_one_lookalike(self, db: Session, filter_param: FilterSchemaType) -> Optional[ORMModel]:
+        """
+        Retrieves one record from the database based on the Levenshtein distance.
+
+        Parameters:
+            db (Session): The database session object.
+            filter_param (FilterSchemaType): The data for filtering the record.
+            It's a pydantic BaseModel
+
+        Returns:
+            Optional[ORMModel]: The retrieved record, if found.
+        """
+        filter_dict = filter_param.model_dump()
+        filter_key = next(iter(filter_dict))
+        filter_value = filter_dict[filter_key]
+        model_attribute = getattr(self._model, filter_key)
+        log.debug(
+            "retrieving one record for %s from attribute '%s' and value '%s'",
+            self._model.__name__,
+            filter_key,
+            filter_value
+        )
+        
+        return db.query(self._model).order_by(
+                func.levenshtein(
+                    func.lower(func.trim(model_attribute))
+                    , func.lower(func.trim(filter_value))
+                )
+            )\
+            .first()
 
     def get_all(self, db: Session, *args, **kwargs) -> List[ORMModel]:
         """

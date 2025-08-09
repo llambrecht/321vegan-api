@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 from typing import Any, Union
+from pydantic import ValidationError
 from jose import jwt, JWTError
 from app.config import settings
 from app.schemas.auth import TokenPayload

@@ -29,6 +29,9 @@ OPERATOR_MAPPING = {
     'endswith': operators.endswith_op,
     'iendswith': lambda c, v: c.ilike('%' + v),
     'contains': lambda c, v: c.ilike('%{v}%'.format(v=v)),
+    'lookalike': lambda c,v: func.levenshtein(
+        func.lower(func.trim(c)), 
+        func.lower(func.trim(v))) <= 1,
 
     'year': lambda c, v: extract('year', c) == v,
     'year_ne': lambda c, v: extract('year', c) != v,
@@ -105,5 +108,6 @@ def buildQueryFilters(model: Type[ORMModel], query: Query, filter_args: Dict) ->
                 filters_by[field] = value
         query = query.filter_by(**filters_by)
         return query
-    except Exception:
+    except Exception as e:
+        print(e)
         return query
