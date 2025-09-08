@@ -3,6 +3,7 @@ from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 from app.routes import (
     auth_router, 
     account_router, 
@@ -14,6 +15,7 @@ from app.routes import (
     error_report_router,
     export_router,
     checking_router,
+    scoring_router,
 )
 from app.log import get_logger
 
@@ -68,3 +70,7 @@ app.include_router(apiclient_router, prefix="/apiclients", tags=["apiclient"])
 app.include_router(error_report_router, prefix="/error-reports", tags=["error_report"])
 app.include_router(export_router, prefix="/export", tags=["export"])
 app.include_router(checking_router, prefix="/checkings", tags=["checking"])
+app.include_router(scoring_router, prefix="/scoring", tags=["scoring"])
+
+# Serve static files
+app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")

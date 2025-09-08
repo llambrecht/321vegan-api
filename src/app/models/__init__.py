@@ -5,3 +5,4 @@ from app.models.cosmetic import Cosmetic
 from app.models.apiclient import ApiClient
 from app.models.error_report import ErrorReport
 from app.models.checking import Checking
+from app.models.scoring import Category, Criterion, BrandCriterionScore
