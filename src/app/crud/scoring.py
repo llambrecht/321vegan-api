@@ -3,14 +3,11 @@ from typing import List, Optional
 from app.models.scoring import Category, Criterion, BrandCriterionScore
 from app.models.brand import Brand
 from app.schemas.scoring import (
-    CategoryCreate, CategoryUpdate,
-    CriterionCreate, CriterionUpdate,
-    BrandCriterionScoreCreate, BrandCriterionScoreUpdate,
+    BrandCriterionScoreCreate,
     CategoryScore, BrandScoringReport
 )
 from app.crud.base import CRUDRepository
 
-# Create CRUD instances like in brand.py
 category = CRUDRepository(model=Category)
 criterion = CRUDRepository(model=Criterion)
 
