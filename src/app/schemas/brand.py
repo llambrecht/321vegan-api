@@ -9,8 +9,9 @@ class Brand(BaseModel):
 
 
 class BrandBase(BaseModel):
-    name: str
+    name: Optional[str] = None
     parent_id: Optional[int] = None
+    logo_path: Optional[str] = None
 
 
 class BrandCreate(BrandBase):
@@ -32,6 +33,7 @@ class BrandOut(BaseModel):
     created_at: datetime
     updated_at: datetime
     name: str
+    logo_path: Optional[str] = None
     parent: Optional[Brand] = None
 
     class Config:

@@ -1,6 +1,6 @@
 from typing import Annotated, List, Optional, Tuple
 
-from fastapi import APIRouter, Body, Depends, HTTPException, status
+from fastapi import APIRouter, Body, Depends, HTTPException, status, File, UploadFile
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -303,4 +303,85 @@ def delete_brand(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Couldn't delete brand with id {id}. Error: {str(e)}",
+        ) from e
+
+
+@router.post("/{brand_id}/upload-logo", response_model=BrandOut, status_code=status.HTTP_200_OK)
+def upload_brand_logo(
+    *,
+    db: Session = Depends(get_db),
+    brand_id: int,
+    file: UploadFile = File(..., description="Image du logo (JPG, PNG, WebP max 5MB)")
+):
+    """
+    Upload a logo for a brand.
+
+    - **brand_id**: ID of the brand
+    - **file**: Image file (JPG, PNG, WebP, max 5MB)
+
+    The file will be saved in `/uploads/brands/` and the path will be updated in the database.
+    """
+    from app.services.file_service import file_service
+
+    # Check if the brand exists
+    brand = brand_crud.get_one(db, Brand.id == brand_id)
+    if not brand:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Brand with id {brand_id} not found"
+        )
+    
+    try:
+        # Save the file and get the path
+        logo_path = file_service.save_brand_logo(brand_id, file)
+
+        # Update the brand with the new logo path
+        brand_update = BrandUpdate(logo_path=logo_path)
+        updated_brand = brand_crud.update(db, brand, brand_update)
+        
+        return updated_brand
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error uploading logo: {str(e)}"
+        ) from e
+
+
+@router.delete("/{brand_id}/logo", status_code=status.HTTP_204_NO_CONTENT)
+def delete_brand_logo(
+    *,
+    db: Session = Depends(get_db),
+    brand_id: int
+):
+    """
+    Delete the logo of a brand.
+
+    - **brand_id**: ID of the brand
+    """
+    from app.services.file_service import file_service
+
+    # Check if the brand exists
+    brand = brand_crud.get_one(db, Brand.id == brand_id)
+    if not brand:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Brand with id {brand_id} not found"
+        )
+    
+    try:
+        # Delete the physical file if it exists
+        if brand.logo_path:
+            file_service.delete_brand_logo(brand.logo_path)
+
+        # Update the brand to remove the logo path
+        brand_update = BrandUpdate(logo_path=None)
+        brand_crud.update(db, brand, brand_update)
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error deleting logo: {str(e)}"
         ) from e

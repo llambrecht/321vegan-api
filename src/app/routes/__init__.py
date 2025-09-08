@@ -8,6 +8,7 @@ from app.routes.apiclient import router as apiclient_router
 from app.routes.error_report import router as error_report_router
 from app.routes.export import router as export_router
 from app.routes.checking import router as checking_router
+from app.routes.scoring import router as scoring_router
 
 
 __all__ = [
@@ -21,4 +22,5 @@ __all__ = [
     "error_report_router",
     "export_router",
     "checking_router",
+    "scoring_router",
 ]
