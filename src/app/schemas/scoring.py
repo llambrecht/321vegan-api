@@ -94,6 +94,8 @@ class CategoryScore(BaseModel):
 class BrandScoringReport(BaseModel):
     brand_id: int
     brand_name: str
+    brand_logo_path: Optional[str] = Field(None, description="Path to brand logo")
+    parent_brands: List[str] = Field(default_factory=list, description="List of parent brand names in hierarchy")
     global_score: Optional[float] = Field(None, description="Global brand score")
     category_scores: List[CategoryScore] = []
     total_scores_count: int = Field(0, description="Total number of scored criteria")

@@ -105,9 +105,14 @@ class BrandCriterionScoreCRUD():
             global_score = sum(all_category_averages) / len(all_category_averages)
             global_score = round(global_score, 2)
         
+        # Get parent brand names hierarchy (exclude current brand)
+        parent_brands = brand.parent_name_tree[1:] if len(brand.parent_name_tree) > 1 else []
+        
         return BrandScoringReport(
             brand_id=brand_id,
             brand_name=brand.name,
+            brand_logo_path=brand.logo_path,
+            parent_brands=parent_brands,
             global_score=global_score,
             category_scores=category_scores,
             total_scores_count=total_scores_count,
