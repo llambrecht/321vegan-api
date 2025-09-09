@@ -33,7 +33,7 @@ def fetch_all_brands(db: Session = Depends(get_db)) -> List[Optional[BrandOut]]:
         BrandOut: The list of brands fetched from the database.
     """
     
-    return brand_crud.get_all_with_scores(db)
+    return brand_crud.get_all(db)
 
 
 @router.get(
