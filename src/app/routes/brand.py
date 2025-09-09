@@ -24,7 +24,7 @@ def fetch_all_brands(db: Session = Depends(get_db)) -> List[Optional[BrandOut]]:
     Fetch all brands.
 
     This function fetches all brands from the
-    database with their scores.
+    database.
 
     Parameters:
         db (Session): The database session.
@@ -180,7 +180,6 @@ def create_brand(
         brand = brand_crud.create(
             db, brand_create
         )
-        brand = brand_crud.get_one(db, Brand.id == brand.id)
     except IntegrityError as e:
         error_message = str(e.orig)
         if "unique constraint" in error_message.lower() and "name" in error_message.lower():
@@ -244,7 +243,6 @@ def update_brand(
 
     try:
         brand = brand_crud.update(db, brand, brand_update)
-        brand = brand_crud.get_one(db, Brand.id == id)
     except IntegrityError as e:
         error_message = str(e.orig)
         if "unique constraint" in error_message.lower() and "name" in error_message.lower():
@@ -341,7 +339,6 @@ def upload_brand_logo(
         brand_update = BrandUpdate(logo_path=logo_path)
         updated_brand = brand_crud.update(db, brand, brand_update)
         
-        updated_brand = brand_crud.get_one(db, Brand.id == brand_id)
         return updated_brand
         
     except HTTPException:
