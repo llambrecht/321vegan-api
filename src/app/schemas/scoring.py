@@ -110,15 +110,17 @@ class CategoryFilters(BaseModel):
     name: Optional[str] = None
     name__ilike: Optional[str] = None
     name__contains: Optional[str] = None
+    name__lookalike: Optional[str] = None
 
 
 class CriterionFilters(BaseModel):
     name: Optional[str] = None
     name__ilike: Optional[str] = None
     name__contains: Optional[str] = None
+    name__lookalike: Optional[str] = None
     category_id: Optional[int] = None
     category___name__contains: Optional[str] = None
-
+    category___name__lookalike: Optional[str] = None
 
 # Paginated response schemas
 class CategoryOutPaginated(BaseModel):
