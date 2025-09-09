@@ -33,8 +33,8 @@ def create_category(
     existing_category = crud_scoring.category.get_one(db, name=category_in.name)
     if existing_category:
         raise HTTPException(
-            status_code=400,
-            detail="Une catégorie avec ce nom existe déjà"
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Category with name '{category_in.name}' already exists"
         )
     
     return crud_scoring.category.create(db, category_in)
@@ -101,7 +101,7 @@ def read_category(
 ):
     category = crud_scoring.category.get_one(db, id=category_id)
     if not category:
-        raise HTTPException(status_code=404, detail="Catégorie non trouvée")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Category with id '{category_id}' not found")
     return category
 
 
@@ -125,8 +125,8 @@ def update_category(
     """
     category = crud_scoring.category.get_one(db, id=category_id)
     if not category:
-        raise HTTPException(status_code=404, detail="Catégorie non trouvée")
-    
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Category with id '{category_id}' not found")
+
     return crud_scoring.category.update(db, db_obj=category, obj_update=category_in)
 
 
@@ -139,8 +139,8 @@ def delete_category(
     """Supprimer une catégorie (et tous ses critères associés)."""
     category = crud_scoring.category.get_one(db, id=category_id)
     if not category:
-        raise HTTPException(status_code=404, detail="Catégorie non trouvée")
-    
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Category with id '{category_id}' not found")
+
     crud_scoring.category.delete(db, category)
 
 
@@ -165,15 +165,15 @@ def create_criterion(
     # Vérifier que la catégorie existe
     category = crud_scoring.category.get_one(db, id=criterion_in.category_id)
     if not category:
-        raise HTTPException(status_code=400, detail="Catégorie non trouvée")
-    
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Category with id '{criterion_in.category_id}' not found")
+
     # Vérifier l'unicité dans la catégorie
     existing_criterion = crud_scoring.criterion.get_one(
         db, name=criterion_in.name, category_id=criterion_in.category_id
     )
     if existing_criterion:
         raise HTTPException(
-            status_code=400,
+            status_code=status.HTTP_409_CONFLICT,
             detail=f"Criterion with name '{criterion_in.name}' already exists in this category"
         )
     
@@ -245,7 +245,7 @@ def read_criterion(
     """Récupérer un critère spécifique."""
     criterion = crud_scoring.criterion.get_one(db, id=criterion_id)
     if not criterion:
-        raise HTTPException(status_code=404, detail="Criterion not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Criterion not found")
     return criterion
 
 
@@ -269,14 +269,14 @@ def update_criterion(
     """
     criterion = crud_scoring.criterion.get_one(db, id=criterion_id)
     if not criterion:
-        raise HTTPException(status_code=404, detail="Critère non trouvé")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Critère non trouvé")
     
     # Check that the new category exists if changed
     if criterion_in.category_id and criterion_in.category_id != criterion.category_id:
         category = crud_scoring.category.get_one(db, id=criterion_in.category_id)
         if not category:
-            raise HTTPException(status_code=400, detail="Catégorie non trouvée")
-    
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Category with id '{criterion_in.category_id}' not found")
+
     return crud_scoring.criterion.update(db, db_obj=criterion, obj_update=criterion_in)
 
 
@@ -289,8 +289,8 @@ def delete_criterion(
     """Supprimer un critère (et toutes les notes associées)."""
     criterion = crud_scoring.criterion.get_one(db, id=criterion_id)
     if not criterion:
-        raise HTTPException(status_code=404, detail="Critère non trouvé")
-    
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Criterion with id '{criterion_id}' not found")
+
     crud_scoring.criterion.delete(db, db_obj=criterion)
 
 
@@ -318,12 +318,12 @@ def create_or_update_brand_score(
     from app.models import Brand
     brand = brand_crud.get_one(db, Brand.id == brand_id)
     if not brand:
-        raise HTTPException(status_code=404, detail="Brand not found")
-    
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Brand with id '{brand_id}' not found")
+
     # Check that the criterion exists
     criterion = crud_scoring.criterion.get_one(db, id=score_in.criterion_id)
     if not criterion:
-        raise HTTPException(status_code=400, detail="Critère non trouvé")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Criterion with id '{score_in.criterion_id}' not found")
     
     return crud_scoring.brand_criterion_score.create_or_update(db, brand_id=brand_id, obj_in=score_in)
 
@@ -339,8 +339,8 @@ def read_brand_scores(
     from app.models import Brand
     brand = brand_crud.get_one(db, Brand.id == brand_id)
     if not brand:
-        raise HTTPException(status_code=404, detail="Brand not found")
-    
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Brand with id '{brand_id}' not found")
+
     return crud_scoring.brand_criterion_score.get_brand_scores(db, brand_id=brand_id)
 
 
@@ -358,8 +358,8 @@ def get_brand_scoring_report(
     """
     report = crud_scoring.brand_criterion_score.get_brand_scoring_report(db, brand_id=brand_id)
     if not report:
-        raise HTTPException(status_code=404, detail="Marque non trouvée")
-    
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Brand with id '{brand_id}' not found")
+
     return report
 
 
@@ -375,7 +375,7 @@ def read_brand_criterion_score(
         db, brand_id=brand_id, criterion_id=criterion_id
     )
     if not score:
-        raise HTTPException(status_code=404, detail="Note non trouvée")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Score with id '{criterion_id}' not found")
     return score
 
 
@@ -402,8 +402,8 @@ def update_brand_criterion_score(
         db, brand_id=brand_id, criterion_id=criterion_id
     )
     if not existing_score:
-        raise HTTPException(status_code=404, detail="Note non trouvée")
-    
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Score with id '{criterion_id}' not found")
+
     # Créer un objet de création pour réutiliser la logique existante
     score_create = BrandCriterionScoreCreate(
         criterion_id=criterion_id,
@@ -425,4 +425,4 @@ def delete_brand_criterion_score(
     if not crud_scoring.brand_criterion_score.delete_by_brand_and_criterion(
         db, brand_id=brand_id, criterion_id=criterion_id
     ):
-        raise HTTPException(status_code=404, detail="Note non trouvée")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Score with id '{criterion_id}' not found")
