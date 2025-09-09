@@ -24,7 +24,7 @@ def fetch_all_brands(db: Session = Depends(get_db)) -> List[Optional[BrandOut]]:
     Fetch all brands.
 
     This function fetches all brands from the
-    database.
+    database with their scores.
 
     Parameters:
         db (Session): The database session.
@@ -33,7 +33,7 @@ def fetch_all_brands(db: Session = Depends(get_db)) -> List[Optional[BrandOut]]:
         BrandOut: The list of brands fetched from the database.
     """
     
-    return brand_crud.get_all(db)
+    return brand_crud.get_all_with_scores(db)
 
 
 @router.get(
@@ -61,7 +61,7 @@ def fetch_paginated_brands(
     """
     page, size = pagination_params
     sortby, descending = orderby_params
-    brands, total = brand_crud.get_many(
+    brands, total = brand_crud.get_many_with_scores(
         db, 
         skip=page, 
         limit=size, 
@@ -98,7 +98,7 @@ def fetch_brand_by_name(name_param: BrandLookalikeFilter = Depends(), db: Sessio
         HTTPException: If the user does not have enough
             permissions to access to this endpoint.
     """
-    brand = brand_crud.get_one_lookalike(db, name_param)
+    brand = brand_crud.get_one_lookalike_with_score(db, name_param)
     if not brand:
         name = name_param.model_dump()['name']
         raise HTTPException(
@@ -128,7 +128,7 @@ def fetch_brand_by_id(
     Raises:
         HTTPException: If the brand is not found.
     """
-    brand = brand_crud.get_one(db, Brand.id == id)
+    brand = brand_crud.get_one_with_score(db, Brand.id == id)
     if brand is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -180,6 +180,8 @@ def create_brand(
         brand = brand_crud.create(
             db, brand_create
         )
+        # Get brand with score after creation
+        brand = brand_crud.get_one_with_score(db, Brand.id == brand.id)
     except IntegrityError as e:
         error_message = str(e.orig)
         if "unique constraint" in error_message.lower() and "name" in error_message.lower():
@@ -243,6 +245,8 @@ def update_brand(
 
     try:
         brand = brand_crud.update(db, brand, brand_update)
+        # Refresh with score after update
+        brand = brand_crud.get_one_with_score(db, Brand.id == id)
     except IntegrityError as e:
         error_message = str(e.orig)
         if "unique constraint" in error_message.lower() and "name" in error_message.lower():
@@ -339,6 +343,8 @@ def upload_brand_logo(
         brand_update = BrandUpdate(logo_path=logo_path)
         updated_brand = brand_crud.update(db, brand, brand_update)
         
+        # Get brand with score after update
+        updated_brand = brand_crud.get_one_with_score(db, Brand.id == brand_id)
         return updated_brand
         
     except HTTPException:
