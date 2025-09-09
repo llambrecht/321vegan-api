@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, select
+from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, select, func
 from sqlalchemy.orm import relationship
 from sqlalchemy.ext.hybrid import hybrid_property
 from datetime import datetime
@@ -29,6 +29,31 @@ class Brand(Base):
     @classmethod
     def _parent_name_expression(cls):
         return Brand.parent
+
+    @hybrid_property
+    def score(self):
+        """Calculate the average score for this brand."""
+        from app.models.scoring import BrandCriterionScore
+        if hasattr(self, '_score_cache'):
+            return self._score_cache
+        
+        if len(self.criterion_scores) == 0:
+            return None
+        
+        total_score = sum(score.score for score in self.criterion_scores)
+        avg_score = total_score / len(self.criterion_scores)
+        return round(avg_score, 2)
+
+    @score.expression
+    @classmethod
+    def _score_expression(cls):
+        """SQL expression for calculating brand score."""
+        from app.models.scoring import BrandCriterionScore
+        return (
+            select(func.round(func.avg(BrandCriterionScore.score), 2))
+            .where(BrandCriterionScore.brand_id == cls.id)
+            .scalar_subquery()
+        )
 
     @property
     def parent_name_tree(self) -> list:
