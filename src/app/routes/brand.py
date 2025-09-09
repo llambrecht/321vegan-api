@@ -128,7 +128,7 @@ def fetch_brand_by_id(
     Raises:
         HTTPException: If the brand is not found.
     """
-    brand = brand_crud.get_one_with_score(db, Brand.id == id)
+    brand = brand_crud.get_one(db, Brand.id == id)
     if brand is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -181,7 +181,7 @@ def create_brand(
             db, brand_create
         )
         # Get brand with score after creation
-        brand = brand_crud.get_one_with_score(db, Brand.id == brand.id)
+        brand = brand_crud.get_one(db, Brand.id == brand.id)
     except IntegrityError as e:
         error_message = str(e.orig)
         if "unique constraint" in error_message.lower() and "name" in error_message.lower():
@@ -246,7 +246,7 @@ def update_brand(
     try:
         brand = brand_crud.update(db, brand, brand_update)
         # Refresh with score after update
-        brand = brand_crud.get_one_with_score(db, Brand.id == id)
+        brand = brand_crud.get_one(db, Brand.id == id)
     except IntegrityError as e:
         error_message = str(e.orig)
         if "unique constraint" in error_message.lower() and "name" in error_message.lower():
@@ -344,7 +344,7 @@ def upload_brand_logo(
         updated_brand = brand_crud.update(db, brand, brand_update)
         
         # Get brand with score after update
-        updated_brand = brand_crud.get_one_with_score(db, Brand.id == brand_id)
+        updated_brand = brand_crud.get_one(db, Brand.id == brand_id)
         return updated_brand
         
     except HTTPException:
