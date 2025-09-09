@@ -61,7 +61,7 @@ def fetch_paginated_brands(
     """
     page, size = pagination_params
     sortby, descending = orderby_params
-    brands, total = brand_crud.get_many_with_scores(
+    brands, total = brand_crud.get_many(
         db, 
         skip=page, 
         limit=size, 
@@ -98,7 +98,7 @@ def fetch_brand_by_name(name_param: BrandLookalikeFilter = Depends(), db: Sessio
         HTTPException: If the user does not have enough
             permissions to access to this endpoint.
     """
-    brand = brand_crud.get_one_lookalike_with_score(db, name_param)
+    brand = brand_crud.get_one_lookalike(db, name_param)
     if not brand:
         name = name_param.model_dump()['name']
         raise HTTPException(
@@ -180,7 +180,6 @@ def create_brand(
         brand = brand_crud.create(
             db, brand_create
         )
-        # Get brand with score after creation
         brand = brand_crud.get_one(db, Brand.id == brand.id)
     except IntegrityError as e:
         error_message = str(e.orig)
@@ -245,7 +244,6 @@ def update_brand(
 
     try:
         brand = brand_crud.update(db, brand, brand_update)
-        # Refresh with score after update
         brand = brand_crud.get_one(db, Brand.id == id)
     except IntegrityError as e:
         error_message = str(e.orig)
@@ -343,7 +341,6 @@ def upload_brand_logo(
         brand_update = BrandUpdate(logo_path=logo_path)
         updated_brand = brand_crud.update(db, brand, brand_update)
         
-        # Get brand with score after update
         updated_brand = brand_crud.get_one(db, Brand.id == brand_id)
         return updated_brand
         
