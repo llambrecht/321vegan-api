@@ -35,6 +35,7 @@ class BrandOut(BaseModel):
     name: str
     logo_path: Optional[str] = None
     parent: Optional[Brand] = None
+    score: Optional[float] = None
 
     class Config:
         from_attributes = True
