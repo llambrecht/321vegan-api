@@ -5,7 +5,7 @@ This module contains the base interface for CRUD
 from typing import List, Optional, Type, TypeVar, Tuple
 
 from pydantic import BaseModel
-from sqlalchemy import desc, asc, func
+from sqlalchemy import Float, desc, asc, func
 from sqlalchemy.orm import Session, RelationshipProperty, aliased
 from app.models import Base
 from app.security import get_password_hash
@@ -72,36 +72,60 @@ class CRUDRepository:
         )
         return db.query(self._model).filter(*args).filter_by(**kwargs).first()
 
-    def get_one_lookalike(self, db: Session, filter_param: FilterSchemaType) -> Optional[ORMModel]:
+    def get_one_lookalike(
+        self,
+        db: Session,
+        filter_param: FilterSchemaType,
+        min_similarity: float = 0.6  # minimum similarity (60%)
+    ) -> Optional[ORMModel]:
         """
-        Retrieves one record from the database based on the Levenshtein distance.
+        Retrieves one record based on normalized Levenshtein similarity.
+        Returns None if no match is similar enough.
 
         Parameters:
-            db (Session): The database session object.
-            filter_param (FilterSchemaType): The data for filtering the record.
-            It's a pydantic BaseModel
+            db (Session): The database session.
+            filter_param (FilterSchemaType): Filtering criteria as a Pydantic model.
+            min_similarity (float): Minimum similarity ratio (0–1).
 
         Returns:
-            Optional[ORMModel]: The retrieved record, if found.
+            Optional[ORMModel]: The best match, or None if not good enough.
         """
         filter_dict = filter_param.model_dump()
-        filter_key = next(iter(filter_dict))
-        filter_value = filter_dict[filter_key]
+        filter_key, filter_value = next(iter(filter_dict.items()))
         model_attribute = getattr(self._model, filter_key)
+
+        normalized_value = filter_value.strip().lower()
+
         log.debug(
-            "retrieving one record for %s from attribute '%s' and value '%s'",
+            "retrieving one lookalike for %s.%s ~= '%s' (min_similarity=%.2f)",
             self._model.__name__,
             filter_key,
-            filter_value
+            normalized_value,
+            min_similarity
         )
-        
-        return db.query(self._model).order_by(
-                func.levenshtein(
-                    func.lower(func.trim(model_attribute))
-                    , func.lower(func.trim(filter_value))
-                )
-            )\
+
+        # Levenshtein distance
+        lev_dist = func.levenshtein(
+            func.lower(func.trim(model_attribute)),
+            normalized_value
+        )
+
+        # Compute similarity = 1 - (distance / max_length)
+        max_len = func.greatest(
+            func.length(func.lower(func.trim(model_attribute))),
+            len(normalized_value)
+        )
+        similarity = 1 - (lev_dist.cast(Float) / max_len.cast(Float))
+
+        # Query with similarity calculation
+        result = db.query(self._model, similarity.label("similarity"))\
+            .order_by(similarity.desc())\
             .first()
+
+        # Only return if similarity passes threshold
+        if result and result.similarity >= min_similarity:
+            return result[0]
+        return None
 
     def get_all(self, db: Session, *args, **kwargs) -> List[ORMModel]:
         """

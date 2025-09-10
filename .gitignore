@@ -5,6 +5,9 @@
 # DB Backups
 db_backups/
 
+# Uploads
+uploads/brands/
+
 # macOS
 .DS_Store
 
