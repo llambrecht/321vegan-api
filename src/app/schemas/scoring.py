@@ -111,6 +111,7 @@ class CategoryFilters(BaseModel):
     name__ilike: Optional[str] = None
     name__contains: Optional[str] = None
     name__lookalike: Optional[str] = None
+    criteria___name__lookalike: Optional[str] = None
 
 
 class CriterionFilters(BaseModel):
