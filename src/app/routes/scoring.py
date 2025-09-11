@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 from typing import List, Optional, Tuple
 from app.database.db import get_db
-from app.routes.dependencies import get_current_user, get_pagination_params, get_sort_by_params
+from app.routes.dependencies import get_current_user, RoleChecker, get_pagination_params, get_sort_by_params
 from app.schemas.scoring import (
     Category, CategoryCreate, CategoryUpdate, CategoryWithCriteria,
     Criterion, CriterionCreate, CriterionUpdate,
@@ -13,7 +13,7 @@ from app.crud import scoring as crud_scoring
 
 router = APIRouter()
 
-@router.post("/categories", response_model=Category, status_code=status.HTTP_201_CREATED)
+@router.post("/categories", response_model=Category, status_code=status.HTTP_201_CREATED, dependencies=[Depends(RoleChecker(["contributor", "admin"]))])
 def create_category(
     *,
     db: Session = Depends(get_db),
@@ -25,11 +25,11 @@ def create_category(
     **Example payload:**
     ```json
     {
-        "name": "Humains & Animaux"
+        "name": "Animaux humains & non-humains"
     }
     ```
     """
-    # Vérifier si la catégorie existe déjà en utilisant le système de filtres
+    # Check whether the category already exists using the filter system
     existing_category = crud_scoring.category.get_one(db, name=category_in.name)
     if existing_category:
         raise HTTPException(
@@ -40,7 +40,7 @@ def create_category(
     return crud_scoring.category.create(db, category_in)
 
 
-@router.get("/categories/search", response_model=Optional[CategoryOutPaginated], status_code=status.HTTP_200_OK)
+@router.get("/categories/search", response_model=Optional[CategoryOutPaginated], status_code=status.HTTP_200_OK, dependencies=[Depends(RoleChecker(["contributor", "admin"]))])
 def fetch_paginated_categories(
     db: Session = Depends(get_db),
     pagination_params: Tuple[int, int] = Depends(get_pagination_params),
@@ -82,18 +82,18 @@ def fetch_paginated_categories(
     }
 
 
-@router.get("/categories", response_model=List[CategoryWithCriteria])
+@router.get("/categories", response_model=List[CategoryWithCriteria], dependencies=[Depends(RoleChecker(["contributor", "admin"]))])
 def read_categories(
     db: Session = Depends(get_db),
     skip: int = Query(0, ge=0, description="Nombre d'éléments à ignorer"),
     limit: int = Query(100, ge=1, le=1000, description="Nombre maximum d'éléments à retourner")
 ):
-    """Récupérer toutes les catégories avec leurs critères (backward compatibility)."""
+    """Retrieve all categories with their criteria (backward compatibility)."""
     categories = crud_scoring.category.get_all(db, skip=skip, limit=limit)
     return categories
 
 
-@router.get("/categories/{category_id}", response_model=CategoryWithCriteria)
+@router.get("/categories/{category_id}", response_model=CategoryWithCriteria, dependencies=[Depends(RoleChecker(["contributor", "admin"]))])
 def read_category(
     *,
     db: Session = Depends(get_db),
@@ -105,7 +105,7 @@ def read_category(
     return category
 
 
-@router.put("/categories/{category_id}", response_model=Category)
+@router.put("/categories/{category_id}", response_model=Category, dependencies=[Depends(RoleChecker(["contributor", "admin"]))])
 def update_category(
     *,
     db: Session = Depends(get_db),
@@ -130,13 +130,13 @@ def update_category(
     return crud_scoring.category.update(db, db_obj=category, obj_update=category_in)
 
 
-@router.delete("/categories/{category_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/categories/{category_id}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(RoleChecker(["admin"]))])
 def delete_category(
     *,
     db: Session = Depends(get_db),
     category_id: int
 ):
-    """Supprimer une catégorie (et tous ses critères associés)."""
+    """Delete a category (and all its associated criteria)."""
     category = crud_scoring.category.get_one(db, id=category_id)
     if not category:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Category with id '{category_id}' not found")
@@ -145,7 +145,7 @@ def delete_category(
 
 
 # Criteria endpoints
-@router.post("/criteria", response_model=Criterion, status_code=status.HTTP_201_CREATED)
+@router.post("/criteria", response_model=Criterion, status_code=status.HTTP_201_CREATED, dependencies=[Depends(RoleChecker(["contributor", "admin"]))])
 def create_criterion(
     *,
     db: Session = Depends(get_db),
@@ -162,12 +162,12 @@ def create_criterion(
     }
     ```
     """
-    # Vérifier que la catégorie existe
+    # Check that the category exists
     category = crud_scoring.category.get_one(db, id=criterion_in.category_id)
     if not category:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Category with id '{criterion_in.category_id}' not found")
 
-    # Vérifier l'unicité dans la catégorie
+    # Check uniqueness in the category
     existing_criterion = crud_scoring.criterion.get_one(
         db, name=criterion_in.name, category_id=criterion_in.category_id
     )
@@ -180,7 +180,7 @@ def create_criterion(
     return crud_scoring.criterion.create(db, obj_create=criterion_in)
 
 
-@router.get("/criteria/search", response_model=Optional[CriterionOutPaginated], status_code=status.HTTP_200_OK)
+@router.get("/criteria/search", response_model=Optional[CriterionOutPaginated], status_code=status.HTTP_200_OK, dependencies=[Depends(RoleChecker(["contributor", "admin"]))])
 def fetch_paginated_criteria(
     db: Session = Depends(get_db),
     pagination_params: Tuple[int, int] = Depends(get_pagination_params),
@@ -222,34 +222,34 @@ def fetch_paginated_criteria(
     }
 
 
-@router.get("/criteria", response_model=List[Criterion])
+@router.get("/criteria", response_model=List[Criterion], dependencies=[Depends(RoleChecker(["contributor", "admin"]))])
 def read_criteria(
     db: Session = Depends(get_db),
     skip: int = Query(0, ge=0, description="Nombre d'éléments à ignorer"),
     limit: int = Query(100, ge=1, le=1000, description="Nombre maximum d'éléments à retourner"),
     category_id: Optional[int] = Query(None, description="Filtrer par catégorie")
 ):
-    """Récupérer tous les critères, optionnellement filtrés par catégorie (backward compatibility)."""
+    """Retrieve all criteria, optionally filtered by category (backward compatibility)."""
     if category_id:
         return crud_scoring.criterion.get_all(db, category_id=category_id)
     else:
         return crud_scoring.criterion.get_all(db, skip=skip, limit=limit)
 
 
-@router.get("/criteria/{criterion_id}", response_model=Criterion)
+@router.get("/criteria/{criterion_id}", response_model=Criterion, dependencies=[Depends(RoleChecker(["contributor", "admin"]))])
 def read_criterion(
     criterion_id: int,
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
-    """Récupérer un critère spécifique."""
+    """Retrieve a specific criterion."""
     criterion = crud_scoring.criterion.get_one(db, id=criterion_id)
     if not criterion:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Criterion not found")
     return criterion
 
 
-@router.put("/criteria/{criterion_id}", response_model=Criterion)
+@router.put("/criteria/{criterion_id}", response_model=Criterion, dependencies=[Depends(RoleChecker(["contributor", "admin"]))])
 def update_criterion(
     *,
     db: Session = Depends(get_db),
@@ -257,9 +257,9 @@ def update_criterion(
     criterion_in: CriterionUpdate
 ):
     """
-    Mettre à jour un critère.
+    Update a criterion.
     
-    **Exemple de payload:**
+    **Example of a payload:**
     ```json
     {
         "name": "Empreinte carbone",
@@ -280,13 +280,13 @@ def update_criterion(
     return crud_scoring.criterion.update(db, db_obj=criterion, obj_update=criterion_in)
 
 
-@router.delete("/criteria/{criterion_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/criteria/{criterion_id}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(RoleChecker(["admin"]))])
 def delete_criterion(
     *,
     db: Session = Depends(get_db),
     criterion_id: int
 ):
-    """Supprimer un critère (et toutes les notes associées)."""
+    """Delete a criterion (and all associated scores)."""
     criterion = crud_scoring.criterion.get_one(db, id=criterion_id)
     if not criterion:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Criterion with id '{criterion_id}' not found")
@@ -404,7 +404,7 @@ def update_brand_criterion_score(
     if not existing_score:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Score with id '{criterion_id}' not found")
 
-    # Créer un objet de création pour réutiliser la logique existante
+    # Create a creation object to reuse existing logic
     score_create = BrandCriterionScoreCreate(
         criterion_id=criterion_id,
         score=score_in.score if score_in.score is not None else existing_score.score,
