@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 from typing import List, Optional, Tuple
 from app.database.db import get_db
-from app.routes.dependencies import get_current_user, RoleChecker, get_pagination_params, get_sort_by_params
+from app.routes.dependencies import get_current_active_user, get_current_user, RoleChecker, get_pagination_params, get_sort_by_params, get_current_active_user_or_client
 from app.schemas.scoring import (
     Category, CategoryCreate, CategoryUpdate, CategoryWithCriteria,
     Criterion, CriterionCreate, CriterionUpdate,
@@ -295,7 +295,7 @@ def delete_criterion(
 
 
 # Brand criterion scores endpoints
-@router.post("/brands/{brand_id}/scores", response_model=BrandCriterionScore, status_code=status.HTTP_201_CREATED)
+@router.post("/brands/{brand_id}/scores", response_model=BrandCriterionScore, status_code=status.HTTP_201_CREATED, dependencies=[Depends(RoleChecker(["contributor", "admin"]))])
 def create_or_update_brand_score(
     *,
     db: Session = Depends(get_db),
@@ -328,7 +328,7 @@ def create_or_update_brand_score(
     return crud_scoring.brand_criterion_score.create_or_update(db, brand_id=brand_id, obj_in=score_in)
 
 
-@router.get("/brands/{brand_id}/scores", response_model=List[BrandCriterionScore])
+@router.get("/brands/{brand_id}/scores", response_model=List[BrandCriterionScore], dependencies=[Depends(get_current_active_user)])
 def read_brand_scores(
     *,
     db: Session = Depends(get_db),
@@ -344,7 +344,7 @@ def read_brand_scores(
     return crud_scoring.brand_criterion_score.get_brand_scores(db, brand_id=brand_id)
 
 
-@router.get("/brands/{brand_id}/scoring-report", response_model=BrandScoringReport)
+@router.get("/brands/{brand_id}/scoring-report", response_model=BrandScoringReport, dependencies=[Depends(get_current_active_user_or_client)])
 def get_brand_scoring_report(
     *,
     db: Session = Depends(get_db),
@@ -363,7 +363,7 @@ def get_brand_scoring_report(
     return report
 
 
-@router.get("/brands/{brand_id}/scores/{criterion_id}", response_model=BrandCriterionScore)
+@router.get("/brands/{brand_id}/scores/{criterion_id}", response_model=BrandCriterionScore, dependencies=[Depends(get_current_active_user)])
 def read_brand_criterion_score(
     *,
     db: Session = Depends(get_db),
@@ -379,7 +379,7 @@ def read_brand_criterion_score(
     return score
 
 
-@router.put("/brands/{brand_id}/scores/{criterion_id}", response_model=BrandCriterionScore)
+@router.put("/brands/{brand_id}/scores/{criterion_id}", response_model=BrandCriterionScore, dependencies=[Depends(RoleChecker(["contributor", "admin"]))])
 def update_brand_criterion_score(
     *,
     db: Session = Depends(get_db),
@@ -414,7 +414,7 @@ def update_brand_criterion_score(
     return crud_scoring.brand_criterion_score.create_or_update(db, brand_id=brand_id, obj_in=score_create)
 
 
-@router.delete("/brands/{brand_id}/scores/{criterion_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/brands/{brand_id}/scores/{criterion_id}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(RoleChecker(["contributor", "admin"]))])
 def delete_brand_criterion_score(
     *,
     db: Session = Depends(get_db),
