@@ -1,3 +1,4 @@
+import statistics
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from app.models.scoring import Category, Criterion, BrandCriterionScore
@@ -66,7 +67,7 @@ class BrandCriterionScoreCRUD():
         # Retrieve all categories and their criteria
         categories = db.query(Category).all()
         category_scores = []
-        all_category_averages = []
+        all_category_scores = []
         total_scores_count = 0
         total_criteria_count = 0
         
@@ -80,15 +81,14 @@ class BrandCriterionScoreCRUD():
                 )
                 .all()
             )
-            
             criteria_count = db.query(Criterion).filter(Criterion.category_id == category.id).count()
             total_criteria_count += criteria_count
             
             category_average = None
-            if scores:
-                category_average = sum(score.score for score in scores) / len(scores)
-                all_category_averages.append(category_average)
-                total_scores_count += len(scores)
+            if criteria_count:
+                category_average = sum(score.score for score in scores) / (criteria_count * 5)
+                all_category_scores.append(sum(score.score for score in scores))
+                total_scores_count += criteria_count * 5
             
             category_scores.append(CategoryScore(
                 category_id=category.id,
@@ -98,9 +98,8 @@ class BrandCriterionScoreCRUD():
             ))
         
         global_score = None
-        if all_category_averages:
-            global_score = sum(all_category_averages) / len(all_category_averages)
-            global_score = round(global_score, 2)
+        if total_scores_count:
+            global_score = round(sum(all_category_scores) / total_scores_count, 2)
         
         # Get parent brand names hierarchy (exclude current brand)
         parent_brands = brand.parent_name_tree[1:] if len(brand.parent_name_tree) > 1 else []

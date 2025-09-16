@@ -1,8 +1,9 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, select, func
-from sqlalchemy.orm import relationship
+from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, select, func, case
+from sqlalchemy.orm import relationship, object_session
 from sqlalchemy.ext.hybrid import hybrid_property
 from datetime import datetime
 from app.database.base_class import Base
+from app.models.scoring import BrandCriterionScore, Criterion
 
 class Brand(Base):
     __tablename__ = "brands"
@@ -17,13 +18,17 @@ class Brand(Base):
     parent = relationship("Brand", back_populates="children", remote_side=[id])
     products = relationship("Product", back_populates="brand")
 
+    @property
+    def parent_name_tree(self) -> list:
+        if self.parent:
+            return [self.name] + self.parent.parent_name_tree
+        return [self.name]
 
     @hybrid_property
     def parent_name(self):
         if self.parent:
             return self.parent.name
-        else:
-            return None
+        return None
 
     @parent_name.inplace.expression
     @classmethod
@@ -33,30 +38,27 @@ class Brand(Base):
     @hybrid_property
     def score(self):
         """Calculate the average score for this brand."""
-        from app.models.scoring import BrandCriterionScore
         if hasattr(self, '_score_cache'):
             return self._score_cache
-        
+
         if len(self.criterion_scores) == 0:
             return None
-        
+        max_total_point = object_session(self).query(Criterion).count() * 5
+        if max_total_point <= 0:
+            return None
         total_score = sum(score.score for score in self.criterion_scores)
-        avg_score = total_score / len(self.criterion_scores)
+        avg_score = total_score / max_total_point
         return round(avg_score, 2)
 
-    @score.expression
+    @score.inplace.expression
     @classmethod
     def _score_expression(cls):
         """SQL expression for calculating brand score."""
-        from app.models.scoring import BrandCriterionScore
-        return (
-            select(func.round(func.avg(BrandCriterionScore.score), 2))
-            .where(BrandCriterionScore.brand_id == cls.id)
-            .scalar_subquery()
+        max_total_point = select(func.count(Criterion.id) * 5)\
+            .label("max_total_point").scalar_subquery()
+        total_score = select(func.sum(BrandCriterionScore.score))\
+            .where(BrandCriterionScore.brand_id == cls.id).scalar_subquery()
+        return case(
+            (max_total_point == 0, None),
+            else_ = func.round(total_score / max_total_point, 2)
         )
-
-    @property
-    def parent_name_tree(self) -> list:
-        if self.parent:
-            return [self.name] + self.parent.parent_name_tree
-        return [self.name]
