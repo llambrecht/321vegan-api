@@ -10,6 +10,7 @@ services:
       - 321vegan_postgres_data:/var/lib/postgresql/data
     ports:
       - "${POSTGRES_PORT}:${POSTGRES_PORT}"
+    restart: unless-stopped
 
   321veganapi:
     container_name: 321veganapi
@@ -24,6 +25,7 @@ services:
       - .env
     environment:
       - PATH=/app/bin:$PATH
+    restart: unless-stopped
 
   321veganpgadmin:
     container_name: 321veganpgadmin
