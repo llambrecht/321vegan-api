@@ -39,20 +39,65 @@ def extract_brand_name(product: Product) -> Optional[str]:
     return None
 
 
+def export_brands_to_sqlite(db: Session, sqlite_cursor: sqlite3.Cursor) -> dict:
+    """Export all brands to SQLite brands table."""
+    # Query all brands from the database
+    brands_to_export = db.query(Brand).all()
+    
+    if not brands_to_export:
+        return {"exported": 0, "skipped": 0}
+    
+    exported_count = 0
+    skipped_count = 0
+    
+    # Clear existing brands data
+    sqlite_cursor.execute("DELETE FROM brands")
+    
+    for brand in brands_to_export:
+        try:
+            sqlite_cursor.execute('''
+                INSERT OR REPLACE INTO brands 
+                (id, name, parent_id) 
+                VALUES (?, ?, ?)
+            ''', (
+                brand.id,
+                brand.name,
+                brand.parent_id
+            ))
+            exported_count += 1
+        except Exception as e:
+            log.error(f"Error inserting brand {brand.id} ({brand.name}): {e}")
+            skipped_count += 1
+    
+    return {"exported": exported_count, "skipped": skipped_count}
+
+
 def create_sqlite_database(db_path: str) -> sqlite3.Connection:
     """Create SQLite database with the required table structure."""
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
     
-    # Create the products table with the required schema
+    # Create the brands table
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS brands (
+            id INTEGER PRIMARY KEY,
+            name TEXT NOT NULL,
+            parent_id INTEGER,
+            FOREIGN KEY (parent_id) REFERENCES brands (id)
+        )
+    ''')
+    
+    # Create the products table with the updated schema
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS products (
             code TEXT PRIMARY KEY,
             name TEXT,
+            brand_id INTEGER,
             brand TEXT,
             status TEXT,
             biodynamie TEXT,
-            problem TEXT
+            problem TEXT,
+            FOREIGN KEY (brand_id) REFERENCES brands (id)
         )
     ''')
     
@@ -86,10 +131,18 @@ async def export_products_to_sqlite(
     """
     Export published products to SQLite format.
     
-    Returns a downloadable SQLite file containing products with columns:
+    Returns a downloadable SQLite file containing:
+    
+    Brands table with columns:
+    - id: brand ID
+    - name: brand name  
+    - parent_id: parent brand ID (if exists)
+    
+    Products table with columns:
     - code: barcode (ean)
     - name: product name (trimmed)
-    - brand: brand name from brand_id or description if no brand_id
+    - brand_id: brand ID (if product has a brand)
+    - brand: product description (if product has no brand_id)
     - status: V (vegan), R (not vegan), M (maybe vegan), N (not found)
     - biodynamie: Y or null
     - problem: problem_description for non-vegan products
@@ -116,6 +169,10 @@ async def export_products_to_sqlite(
             ])
         ).all()
         
+        # Export brands first
+        brand_stats = export_brands_to_sqlite(db, sqlite_cursor)
+        log.info(f"Brands export: {brand_stats['exported']} exported, {brand_stats['skipped']} skipped")
+        
         exported_count = 0
         skipped_count = 0
         
@@ -123,7 +180,13 @@ async def export_products_to_sqlite(
             # Prepare data for export
             code = product.ean.strip()
             name = product.name.strip() if product.name else None
-            brand = extract_brand_name(product)
+            
+            # Handle brand logic: use brand_id if available, otherwise use description as brand
+            brand_id = product.brand_id if product.brand_id else None
+            brand = None
+            if not product.brand_id and product.description:
+                brand = product.description.strip()
+            
             status = map_status_to_export_format(product.status)
             biodynamie = "Y" if product.biodynamic else None
             problem = product.problem_description if product.status == ProductStatus.NON_VEGAN else None
@@ -132,9 +195,9 @@ async def export_products_to_sqlite(
             try:
                 sqlite_cursor.execute('''
                     INSERT OR REPLACE INTO products 
-                    (code, name, brand, status, biodynamie, problem) 
-                    VALUES (?, ?, ?, ?, ?, ?)
-                ''', (code, name, brand, status, biodynamie, problem))
+                    (code, name, brand_id, brand, status, biodynamie, problem) 
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                ''', (code, name, brand_id, brand, status, biodynamie, problem))
                 
                 exported_count += 1
                     
@@ -186,6 +249,11 @@ async def get_export_statistics(
         total_products = len(published_products)
         products_with_ean = len([p for p in published_products if p.ean and p.ean.strip()])
         
+        # Brand statistics
+        products_with_brand_id = len([p for p in published_products if p.ean and p.ean.strip() and p.brand_id])
+        products_with_description_as_brand = len([p for p in published_products if p.ean and p.ean.strip() and not p.brand_id and p.description])
+        unique_brand_ids = set(p.brand_id for p in published_products if p.brand_id)
+        
         status_counts = {}
         biodynamic_count = 0
         problems_count = 0
@@ -211,6 +279,12 @@ async def get_export_statistics(
             "exportable_products": products_with_ean,
             "skipped_products": total_products - products_with_ean,
             "included_states": ["PUBLISHED", "NEED_CONTACT", "WAITING_REPLY"],
+            "brand_statistics": {
+                "unique_brands_in_export": len(unique_brand_ids),
+                "products_with_brand_id": products_with_brand_id,
+                "products_with_description_as_brand": products_with_description_as_brand,
+                "products_without_brand_info": products_with_ean - products_with_brand_id - products_with_description_as_brand
+            },
             "status_distribution": {
                 "vegan": status_counts.get("V", 0),
                 "not_vegan": status_counts.get("R", 0),
