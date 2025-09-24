@@ -123,8 +123,12 @@ def fetch_brand_by_id(
         db (Session): The database session.
 
     Returns:
-        BrandOut: The fetched brand.
-
+        BrandOut: The fetched brand with its full parent chain.
+        
+    Notes:
+        - Returns the complete parent chain (parent, parent's parent, etc.)
+        - Child brands will inherit scores from root parent brand if they don't have their own
+        
     Raises:
         HTTPException: If the brand is not found.
     """
@@ -134,6 +138,7 @@ def fetch_brand_by_id(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Brand with id {id} not found",
         )
+    
     return brand
 
 
