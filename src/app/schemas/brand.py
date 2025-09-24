@@ -7,7 +7,6 @@ class Brand(BaseModel):
     id: int
     name: str
 
-
 class BrandBase(BaseModel):
     name: Optional[str] = None
     parent_id: Optional[int] = None
