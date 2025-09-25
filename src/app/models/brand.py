@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, select, func, case
+from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Boolean, select, func, case
 from sqlalchemy.orm import relationship, object_session
 from sqlalchemy.ext.hybrid import hybrid_property
 from datetime import datetime
@@ -14,6 +14,7 @@ class Brand(Base):
     updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
     name = Column(String, unique=True, index=True, nullable=False)
     logo_path = Column(String, nullable=True)
+    boycott = Column(Boolean, default=False, nullable=True)
     parent_id = Column(Integer, ForeignKey("brands.id"), nullable=True)
     children = relationship("Brand", back_populates="parent")
     parent = relationship("Brand", back_populates="children", remote_side=[id])

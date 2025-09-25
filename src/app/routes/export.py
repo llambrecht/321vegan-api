@@ -57,12 +57,13 @@ def export_brands_to_sqlite(db: Session, sqlite_cursor: sqlite3.Cursor) -> dict:
         try:
             sqlite_cursor.execute('''
                 INSERT OR REPLACE INTO brands 
-                (id, name, parent_id) 
-                VALUES (?, ?, ?)
+                (id, name, parent_id, boycott) 
+                VALUES (?, ?, ?, ?)
             ''', (
                 brand.id,
                 brand.name,
-                brand.parent_id
+                brand.parent_id,
+                brand.boycott
             ))
             exported_count += 1
         except Exception as e:
@@ -83,6 +84,7 @@ def create_sqlite_database(db_path: str) -> sqlite3.Connection:
             id INTEGER PRIMARY KEY,
             name TEXT NOT NULL,
             parent_id INTEGER,
+            boycott BOOLEAN DEFAULT 0,
             FOREIGN KEY (parent_id) REFERENCES brands (id)
         )
     ''')
@@ -137,6 +139,7 @@ async def export_products_to_sqlite(
     - id: brand ID
     - name: brand name  
     - parent_id: parent brand ID (if exists)
+    - boycott: boycott status (0 or 1)
     
     Products table with columns:
     - code: barcode (ean)

@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from fastapi import Query
 from typing import List, Optional
 from datetime import datetime, timezone
@@ -6,11 +6,18 @@ from datetime import datetime, timezone
 class Brand(BaseModel):
     id: int
     name: str
+    boycott: Optional[bool] = False
+    
+    @field_validator('boycott', mode='before')
+    @classmethod
+    def set_boycott_default(cls, v):
+        return False if v is None else v
 
 class BrandBase(BaseModel):
     name: Optional[str] = None
     parent_id: Optional[int] = None
     logo_path: Optional[str] = None
+    boycott: Optional[bool] = False
 
 
 class BrandCreate(BrandBase):
@@ -33,8 +40,14 @@ class BrandOut(BaseModel):
     updated_at: datetime
     name: str
     logo_path: Optional[str] = None
+    boycott: Optional[bool] = False
     parent: Optional[Brand] = None
     score: Optional[float] = None
+    
+    @field_validator('boycott', mode='before')
+    @classmethod
+    def set_boycott_default(cls, v):
+        return False if v is None else v
 
     class Config:
         from_attributes = True
