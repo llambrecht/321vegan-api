@@ -74,6 +74,7 @@ class BrandFilters(BaseModel):
     parent_id: Optional[int] = None
     parent___name__contains: Optional[str] = None
     parent___name__lookalike: Optional[str] = None
+    boycott: Optional[bool] = None
 
 class BrandLookalikeFilter(BaseModel):
     name: str = Field(Query(..., min_length=1))
