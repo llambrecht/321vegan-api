@@ -13,12 +13,19 @@ class Brand(Base):
     created_at = Column(DateTime, default=datetime.now)
     updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
     name = Column(String, unique=True, index=True, nullable=False)
+    email = Column(String, nullable=True)
     logo_path = Column(String, nullable=True)
     boycott = Column(Boolean, default=False, nullable=True)
     parent_id = Column(Integer, ForeignKey("brands.id"), nullable=True)
     children = relationship("Brand", back_populates="parent")
     parent = relationship("Brand", back_populates="children", remote_side=[id])
     products = relationship("Product", back_populates="brand")
+
+    @property
+    def root_email(self) -> str | None:
+        if self.email is None and self.parent:
+            return self.parent.root_email
+        return self.email
 
     @property
     def parent_name_tree(self) -> list:
