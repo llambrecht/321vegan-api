@@ -1,7 +1,7 @@
 services:
   321vegandb:
     container_name: ${POSTGRES_HOST}
-    image: postgres
+    image: postgres:17.5
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
