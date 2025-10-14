@@ -66,7 +66,7 @@ class Brand(Base):
             max_total_point = object_session(self).query(Criterion).count() * 5
             if max_total_point > 0:
                 total_score = sum(score.score for score in self.criterion_scores)
-                avg_score = total_score / max_total_point
+                avg_score = (total_score * 100) / max_total_point
                 return round(avg_score, 2)
         
         # If no scores for this brand but there is a parent/ancestor with a score, use that
@@ -90,5 +90,5 @@ class Brand(Base):
             .where(BrandCriterionScore.brand_id == cls.id).scalar_subquery()
         return case(
             (max_total_point == 0, None),
-            else_ = func.round(total_score / max_total_point, 2)
+            else_ = func.round((total_score * 100) / max_total_point, 2)
         )
