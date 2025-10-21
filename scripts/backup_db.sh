@@ -22,4 +22,6 @@ gzip "$BACKUP_FILE"
 # Only keep last 7 backups
 ls -1t "$BACKUP_DIR"/*.gz | tail -n +8 | xargs -r rm --
 
+curl -fsS -m 10 https://hc-ping.com/dc26fb69-8001-4cc5-ad4b-e3804ec787b4 > /dev/null
+
 echo "✅ Backup saved to: ${BACKUP_FILE}.gz"
