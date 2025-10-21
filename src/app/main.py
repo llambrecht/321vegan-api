@@ -16,6 +16,7 @@ from app.routes import (
     export_router,
     checking_router,
     scoring_router,
+    healthcheck_router,
 )
 from app.log import get_logger
 
@@ -71,6 +72,7 @@ app.include_router(error_report_router, prefix="/error-reports", tags=["error_re
 app.include_router(export_router, prefix="/export", tags=["export"])
 app.include_router(checking_router, prefix="/checkings", tags=["checking"])
 app.include_router(scoring_router, prefix="/scoring", tags=["scoring"])
+app.include_router(healthcheck_router, prefix="/healthcheck", tags=["healthcheck"])
 
 # Serve static files
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")

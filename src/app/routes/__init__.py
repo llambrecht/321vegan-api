@@ -9,6 +9,7 @@ from app.routes.error_report import router as error_report_router
 from app.routes.export import router as export_router
 from app.routes.checking import router as checking_router
 from app.routes.scoring import router as scoring_router
+from app.routes.healthcheck import router as healthcheck_router
 
 
 __all__ = [
@@ -23,4 +24,5 @@ __all__ = [
     "export_router",
     "checking_router",
     "scoring_router",
+    "healthcheck_router",
 ]
