@@ -37,6 +37,17 @@ class Settings(BaseSettings):
     ALGORITHM: str
     ACCESS_TOKEN_EXPIRE_MINUTES: int
     REFRESH_TOKEN_EXPIRE_DAYS: int
+    
+    # Email settings for password reset
+    SMTP_HOST: str
+    SMTP_PORT: int
+    SMTP_USERNAME: str
+    SMTP_PASSWORD: str
+    FROM_EMAIL: EmailStr
+    RESET_TOKEN_EXPIRE_HOURS: int
+    
+    # Frontend URL for password reset links
+    FRONTEND_URL: str
 
 
 class ContainerDevSettings(Settings):
