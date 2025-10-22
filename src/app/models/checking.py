@@ -9,6 +9,7 @@ class CheckingStatus(str, enum.Enum):
     PENDING = "PENDING"
     VEGAN = "VEGAN"
     NON_VEGAN = "NON_VEGAN"
+    MAYBE_VEGAN = "MAYBE_VEGAN"
 
 class Checking(Base):
     __tablename__ = "checkings"
