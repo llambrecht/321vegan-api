@@ -166,11 +166,9 @@ def request_password_reset(
     user = user_crud.get_user_by_email(db, request.email)
     
     if user and user_crud.is_active_user(user):
-        # Create reset token
         reset_token = user_crud.create_password_reset_token(db, request.email)
         
         if reset_token:
-            # Send reset email
             email_sent = email_service.send_password_reset_email(
                 email=user.email,
                 reset_token=reset_token,
@@ -178,13 +176,11 @@ def request_password_reset(
             )
             
             if not email_sent:
-                # Log the error but don't expose it to the user
                 raise HTTPException(
                     status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                     detail="Failed to send reset email. Please try again later."
                 )
     
-    # Always return success message for security reasons
     return {
         "detail": "If the email exists in our system, you will receive password reset instructions."
     }
@@ -210,14 +206,13 @@ def confirm_password_reset(
         HTTPException: If the new password doesn't meet security requirements.
     """
     # Validate password strength
-    is_valid, error_message = security.validate_password_strength(request.new_password)
+    is_valid, error_messages = security.validate_password_strength(request.new_password)
     if not is_valid:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=error_message
+            detail={"errors": error_messages}
         )
     
-    # Verify and reset password
     user = user_crud.reset_password(db, request.token, request.new_password)
     
     if not user:

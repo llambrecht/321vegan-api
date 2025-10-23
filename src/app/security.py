@@ -150,7 +150,9 @@ def verify_reset_token(token: str) -> TokenPayload | None:
     return token_data
 
 
-def validate_password_strength(password: str) -> tuple[bool, str]:
+import re
+
+def validate_password_strength(password: str) -> tuple[bool, list[str]]:
     """
     Validate password strength.
 
@@ -158,24 +160,21 @@ def validate_password_strength(password: str) -> tuple[bool, str]:
         password (str): The password to validate.
 
     Returns:
-        tuple[bool, str]: A tuple containing (is_valid, error_message).
+        tuple[bool, list[str]]: A tuple containing (is_valid, error_messages).
     """
+    errors = []
+
     if len(password) < 8:
-        return False, "Password must be at least 8 characters long"
-    
+        errors.append("Password must be at least 8 characters long")
     if len(password) > 100:
-        return False, "Password must be less than 100 characters long"
-    
+        errors.append("Password must be less than 100 characters long")
     if not re.search(r"[a-z]", password):
-        return False, "Password must contain at least one lowercase letter"
-    
+        errors.append("Password must contain at least one lowercase letter")
     if not re.search(r"[A-Z]", password):
-        return False, "Password must contain at least one uppercase letter"
-    
+        errors.append("Password must contain at least one uppercase letter")
     if not re.search(r"\d", password):
-        return False, "Password must contain at least one number"
-    
+        errors.append("Password must contain at least one number")
     if not re.search(r"[!@#$%^&*()_+\-=\[\]{};':\"\\|,.<>\/?]", password):
-        return False, "Password must contain at least one special character"
-    
-    return True, ""
+        errors.append("Password must contain at least one special character")
+
+    return len(errors) == 0, errors

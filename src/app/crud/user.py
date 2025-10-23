@@ -162,26 +162,5 @@ class UserCRUDRepository(CRUDRepository):
         db.refresh(user)
         
         return user
-    
-    def clear_reset_token(self, db: Session, user: User) -> User:
-        """
-        Clear the password reset token for a user.
-
-        Parameters:
-            db (Session): The database session object.
-            user (User): The user object.
-
-        Returns:
-            User: The updated user object.
-        """
-        user.reset_token = None
-        user.reset_token_expires = None
-        
-        db.add(user)
-        db.commit()
-        db.refresh(user)
-        
-        return user
-
 
 user_crud = UserCRUDRepository(model=User)

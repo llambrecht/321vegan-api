@@ -126,7 +126,7 @@ class EmailService:
                        style="background-color: #2c5530; color: white; padding: 15px 30px; 
                               text-decoration: none; border-radius: 5px; display: inline-block;
                               font-weight: bold;">
-                        Reset Password
+                        Réinitialiser mon mot de passe
                     </a>
                 </div>
                 
