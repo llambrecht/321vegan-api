@@ -1,5 +1,5 @@
 from typing import List, Optional
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, field_validator
 from datetime import datetime, timezone
 
 class UserBase(BaseModel):
@@ -7,6 +7,8 @@ class UserBase(BaseModel):
     email: EmailStr
     nickname: str
     is_active: bool = False
+    vegan_since: Optional[datetime] = None
+    nb_products_sent: Optional[int] = 0
 
 class UserCreate(UserBase):
     password: str
@@ -27,6 +29,13 @@ class UserOut(UserBase):
     updated_at: datetime
     avatar: Optional[str] = None
     roles: List
+    nb_products_sent: int = 0
+
+    @field_validator('nb_products_sent', mode='before')
+    @classmethod
+    def validate_nb_products_sent(cls, v):
+        """Convert None to 0 for nb_products_sent"""
+        return 0 if v is None else v
 
     class Config:
         from_attributes = True
@@ -52,4 +61,15 @@ class UserFilters(BaseModel):
 class UserUpdateOwn(BaseModel):
     nickname: Optional[str] = None
     avatar: Optional[str] = None
+    password: Optional[str] = None
+    vegan_since: Optional[datetime] = None
+
+class UserPatch(BaseModel):
+    """Schema for partial user updates (PATCH requests)"""
+    role: Optional[str] = None
+    email: Optional[EmailStr] = None
+    nickname: Optional[str] = None
+    is_active: Optional[bool] = None
+    vegan_since: Optional[datetime] = None
+    nb_products_sent: Optional[int] = None
     password: Optional[str] = None
