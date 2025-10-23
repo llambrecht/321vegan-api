@@ -9,7 +9,7 @@ from app.crud import user_crud
 from app.database.db import get_db
 from app.log import get_logger
 from app.models import User
-from app.schemas.user import UserCreate, UserOutPaginated, UserOut, UserUpdate, UserFilters
+from app.schemas.user import UserCreate, UserOutPaginated, UserOut, UserUpdate, UserFilters, UserUpdateOwn, UserPatch
 from app.security import get_password_hash
 
 log = get_logger(__name__)
@@ -152,6 +152,8 @@ def create_user(
                     "email": "example@example.com",
                     "password": "12345678",
                     "is_active": True,
+                    "vegan_since": "2023-01-01T00:00:00Z",
+                    "nb_products_sent": 0
                 }
             ]
         ),
@@ -302,6 +304,72 @@ def update_user(
                 raise HTTPException(
                     status_code=status.HTTP_409_CONFLICT,
                     detail=f"User with NICKNAME {user_update.nickname} already exists",
+                ) from e
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Data integrity error: {error_message}",
+            ) from e
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Couldn't update user with id {id}. Error: {str(e)}",
+        ) from e
+    return user
+
+
+@router.patch("/{id}", response_model=UserOut, status_code=status.HTTP_200_OK, dependencies=[Depends(RoleChecker(["admin"]))])
+def patch_user(
+    id: int,
+    user_patch: UserPatch,
+    db: Session = Depends(get_db),
+):
+    """
+    Partially update a user with the given ID.
+    Only the provided fields will be updated, other fields remain unchanged.
+
+    Parameters:
+        id (int): The ID of the user to update.
+        user_patch (UserPatch): The fields to update (only provided fields will be updated).
+        db (Session, optional): The database session. Defaults to Depends(get_db).
+
+    Returns:
+        UserOut: The updated user information.
+
+    Raises:
+        HTTPException: If the user is not found.
+        HTTPException: If there is an error updating the user.
+        HTTPException: If the user does not have enough
+            permissions to access to this endpoint.
+    """
+    user = user_crud.get_one(db, User.id == id)
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"User with id {id} not found. Cannot update.",
+        )
+    
+    # Hash password if it's being updated
+    update_data = user_patch.model_dump(exclude_unset=True)
+    if "password" in update_data:
+        update_data["password"] = get_password_hash(update_data["password"])
+        # Create a new UserPatch with the hashed password
+        user_patch = UserPatch(**update_data)
+    
+    try:
+        user = user_crud.update(db, user, user_patch)
+    except IntegrityError as e:
+        error_message = str(e.orig)
+        if "unique constraint" in error_message.lower(): 
+            if "email" in error_message.lower():
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail=f"User with EMAIL {update_data.get('email', '')} already exists",
+                ) from e
+            elif "nickname" in error_message.lower():
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail=f"User with NICKNAME {update_data.get('nickname', '')} already exists",
                 ) from e
         else:
             raise HTTPException(

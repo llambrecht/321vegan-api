@@ -6,6 +6,7 @@ from app.config import settings
 from app.schemas.auth import TokenPayload
 import secrets
 import string
+import re
 
 # hack for passlib new bcrypt incompatibility
 import bcrypt
@@ -89,3 +90,91 @@ def generate_api_key(length: int = 32) -> str:
     """
     alphabet = string.ascii_letters + string.digits
     return "".join(secrets.choice(alphabet) for _ in range(length))
+
+
+def generate_reset_token() -> str:
+    """
+    Generate a secure reset token for password reset.
+
+    Returns:
+        str: A secure random token for password reset.
+    """
+    return secrets.token_urlsafe(32)
+
+
+def create_reset_token(user_id: int) -> str:
+    """
+    Create a password reset token for a user.
+
+    Parameters:
+        user_id (int): The user ID to create the token for.
+
+    Returns:
+        str: The encoded reset token.
+    """
+    expire = datetime.utcnow() + timedelta(hours=settings.RESET_TOKEN_EXPIRE_HOURS)
+    to_encode = {
+        "exp": expire,
+        "sub": str(user_id),
+        "type": "password_reset"
+    }
+    encoded_jwt = jwt.encode(
+        to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM
+    )
+    return encoded_jwt
+
+
+def verify_reset_token(token: str) -> TokenPayload | None:
+    """
+    Verify a password reset token.
+
+    Parameters:
+        token (str): The reset token to verify.
+
+    Returns:
+        TokenPayload | None: The token payload if valid, None otherwise.
+    """
+    try:
+        payload = jwt.decode(
+            token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]
+        )
+        sub = payload.get("sub")
+        token_type = payload.get("type")
+        
+        if not sub or token_type != "password_reset":
+            return None
+            
+        token_data = TokenPayload(**payload)
+    except (jwt.JWTError, ValidationError) as e:
+        return None
+    return token_data
+
+
+import re
+
+def validate_password_strength(password: str) -> tuple[bool, list[str]]:
+    """
+    Validate password strength.
+
+    Parameters:
+        password (str): The password to validate.
+
+    Returns:
+        tuple[bool, list[str]]: A tuple containing (is_valid, error_messages).
+    """
+    errors = []
+
+    if len(password) < 8:
+        errors.append("Password must be at least 8 characters long")
+    if len(password) > 100:
+        errors.append("Password must be less than 100 characters long")
+    if not re.search(r"[a-z]", password):
+        errors.append("Password must contain at least one lowercase letter")
+    if not re.search(r"[A-Z]", password):
+        errors.append("Password must contain at least one uppercase letter")
+    if not re.search(r"\d", password):
+        errors.append("Password must contain at least one number")
+    if not re.search(r"[!@#$%^&*()_+\-=\[\]{};':\"\\|,.<>\/?]", password):
+        errors.append("Password must contain at least one special character")
+
+    return len(errors) == 0, errors

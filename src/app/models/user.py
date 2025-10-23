@@ -22,6 +22,10 @@ class User(Base):
     password = Column(String, nullable=False)
     is_active = Column(Boolean, default=False)
     avatar = Column(String, nullable=True)
+    vegan_since = Column(DateTime, nullable=True)
+    nb_products_sent = Column(Integer, default=0)
+    reset_token = Column(String, nullable=True)
+    reset_token_expires = Column(DateTime, nullable=True)
     checkings = relationship("Checking", 
         back_populates="user",
         cascade="all, delete",
