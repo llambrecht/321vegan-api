@@ -12,7 +12,7 @@ from app.models import User
 from app.routes.dependencies import get_token
 from app.crud import user_crud
 from app.database import get_db
-from app.schemas.auth import Token, TokenPayload, PasswordResetRequest, PasswordResetConfirm
+from app.schemas.auth import Token, TokenPayload, PasswordResetRequest, PasswordResetConfirm, PasswordResetTokenVerify
 from app.services.email import email_service
 
 router = APIRouter()
@@ -226,14 +226,14 @@ def confirm_password_reset(
 
 @router.post("/password-reset/verify-token", status_code=status.HTTP_200_OK)
 def verify_reset_token(
-    token: str,
+    request: PasswordResetTokenVerify,
     db: Session = Depends(get_db)
 ) -> Dict[str, str]:
     """
     Verify if a password reset token is valid.
 
     Parameters:
-        token (str): The reset token to verify.
+        request (PasswordResetTokenVerify): The request body containing the token.
         db (Session): The database session.
 
     Returns:
@@ -242,7 +242,7 @@ def verify_reset_token(
     Raises:
         HTTPException: If the reset token is invalid or expired.
     """
-    user = user_crud.verify_reset_token(db, token)
+    user = user_crud.verify_reset_token(db, request.token)
     
     if not user:
         raise HTTPException(

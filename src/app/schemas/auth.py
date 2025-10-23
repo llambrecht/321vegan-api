@@ -33,3 +33,9 @@ class PasswordResetConfirm(BaseModel):
     
     token: str
     new_password: str
+
+
+class PasswordResetTokenVerify(BaseModel):
+    """Schema for password reset token verification"""
+    
+    token: str
