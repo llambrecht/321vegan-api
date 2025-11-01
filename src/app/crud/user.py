@@ -163,4 +163,23 @@ class UserCRUDRepository(CRUDRepository):
         
         return user
 
+    def increment_products_sent(self, db: Session, user_id: int):
+        """
+        Increment the nb_products_sent counter for a user.
+
+        Parameters:
+            db (Session): The database session.
+            user_id (int): The ID of the user.
+
+        Returns:
+            Optional[User]: The updated user, or None if not found.
+        """
+        user = self.get_one(db, self._model.id == user_id)
+        if user:
+            current_count = user.nb_products_sent or 0
+            user.nb_products_sent = current_count + 1
+            db.add(user)
+            db.commit()
+            db.refresh(user)
+
 user_crud = UserCRUDRepository(model=User)

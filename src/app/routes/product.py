@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.routes.dependencies import get_current_active_user, get_pagination_params, get_sort_by_params, RoleChecker, get_current_active_user_or_client
 from app.crud import product_crud
+from app.crud.user import user_crud
 from app.database.db import get_db
 from app.log import get_logger
 from app.models import Product, User
@@ -187,6 +188,8 @@ def create_product(
                     "status": 'STATUS',
                     "biodynamic": False,
                     "state": 'STATE',
+                    "has_non_vegan_old_receipe": True,
+                    "user_id": 1
                 }
             ]
         ),
@@ -210,10 +213,21 @@ def create_product(
         HTTPException: If there is an error creating
             the product in the database.
     """
-    try:
-        product = product_crud.create(
-            db, product_create
-        )
+
+    # If user_id was provided in the request, increment their nb_products_sent counter
+    user_id = product_create.user_id
+    if user_id:
+        user_crud.increment_products_sent(db, user_id)
+
+    try:        
+        # Create product data excluding user_id field
+        product_data_dict = product_create.model_dump(exclude={'user_id'}, exclude_none=True, exclude_unset=True)
+        
+        from app.schemas.product import ProductBase
+        product_base = ProductBase(**product_data_dict)
+        product = product_crud.create(db, product_base)
+        
+            
     except IntegrityError as e:
         error_message = str(e.orig)
         if "unique constraint" in error_message.lower() and "ean" in error_message.lower():
@@ -289,12 +303,12 @@ def update_product(
         if "unique constraint" in error_message.lower() and "ean" in error_message.lower():
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
-                detail=f"Product with EAN {product_create.ean} already exists",
+                detail=f"Product with EAN {product_update.ean} already exists",
             ) from e
         elif "foreign key constraint" in error_message.lower() and "brand_id" in error_message.lower():
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Brand with id {product_create.brand_id} does not exist",
+                detail=f"Brand with id {product_update.brand_id} does not exist",
             ) from e
         else:
             raise HTTPException(
