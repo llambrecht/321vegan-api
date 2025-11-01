@@ -99,6 +99,7 @@ def create_sqlite_database(db_path: str) -> sqlite3.Connection:
             status TEXT,
             biodynamie TEXT,
             problem TEXT,
+            has_non_vegan_old_receipe BOOLEAN DEFAULT 0,
             FOREIGN KEY (brand_id) REFERENCES brands (id)
         )
     ''')
@@ -193,14 +194,16 @@ async def export_products_to_sqlite(
             status = map_status_to_export_format(product.status)
             biodynamie = "Y" if product.biodynamic else None
             problem = product.problem_description if product.status == ProductStatus.NON_VEGAN else None
-            
+
+            has_non_vegan_old_receipe = product.has_non_vegan_old_receipe if product.has_non_vegan_old_receipe else False
+
             # Insert into SQLite
             try:
                 sqlite_cursor.execute('''
                     INSERT OR REPLACE INTO products 
-                    (code, name, brand_id, brand, status, biodynamie, problem) 
-                    VALUES (?, ?, ?, ?, ?, ?, ?)
-                ''', (code, name, brand_id, brand, status, biodynamie, problem))
+                    (code, name, brand_id, brand, status, biodynamie, problem, has_non_vegan_old_receipe) 
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                ''', (code, name, brand_id, brand, status, biodynamie, problem, has_non_vegan_old_receipe))
                 
                 exported_count += 1
                     

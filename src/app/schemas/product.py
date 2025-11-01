@@ -19,9 +19,10 @@ class ProductBase(BaseModel):
     status: Optional[str] = None
     biodynamic: Optional[bool] = None
     state: Optional[str] = None
+    has_non_vegan_old_receipe: Optional[bool] = None
 
 class ProductCreate(ProductBase):
-    pass
+    user_id: Optional[int] = None
 
 class ProductUpdate(ProductBase):
     pass
@@ -31,6 +32,7 @@ class ProductInDB(ProductBase):
     created_at: datetime
     updated_at: datetime
     created_from_off: bool
+    has_non_vegan_old_receipe: Optional[bool] = None
 
 class ProductOut(BaseModel):
     id: int
@@ -46,6 +48,7 @@ class ProductOut(BaseModel):
     state: str 
     created_from_off: bool
     checkings: List[CheckingOutForProduct]
+    has_non_vegan_old_receipe: Optional[bool] = None
     last_requested_on: Optional[datetime] = None
     last_requested_by: Optional[str] = None
 
