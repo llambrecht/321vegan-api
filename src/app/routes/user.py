@@ -4,7 +4,7 @@ from fastapi import APIRouter, Body, Depends, HTTPException, status
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.routes.dependencies import get_current_superuser, get_pagination_params, get_sort_by_params, RoleChecker
+from app.routes.dependencies import get_current_superuser, get_pagination_params, get_sort_by_params, RoleChecker, get_current_active_user_or_client, get_admin_or_client
 from app.crud import user_crud
 from app.database.db import get_db
 from app.log import get_logger
@@ -140,7 +140,7 @@ def fetch_user_by_email(email: str, db: Session = Depends(get_db)):
     return user
 
 
-@router.post("/", response_model=UserOut, status_code=status.HTTP_201_CREATED, dependencies=[Depends(RoleChecker(["admin"]))])
+@router.post("/", response_model=UserOut, status_code=status.HTTP_201_CREATED, dependencies=[Depends(get_admin_or_client)])
 def create_user(
     user_create: Annotated[
         UserCreate,
@@ -159,7 +159,6 @@ def create_user(
         ),
     ],
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_superuser),
 ):
     """
     Create a new user.
@@ -167,15 +166,13 @@ def create_user(
     Parameters:
         user_create (UserCreate): The user data to be created.
         db (Session): The database session.
-        current_user (User): The current superuser.
 
     Returns:
         User: The newly created user.
 
     Raises:
         HTTPException: If a user with the same email already exists in the system.
-        HTTPException: If the user does not have enough
-            permissions to access to this endpoint.
+        HTTPException: If the user is not an admin or the request is not authenticated with a valid API key.
     """
     user = user_crud.get_user_by_email(db, email=user_create.email)
     if user is not None:

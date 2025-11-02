@@ -342,6 +342,56 @@ def get_current_active_user_or_client(db: Session = Depends(get_db), token: Toke
     raise _get_credential_exception(status_code=status.HTTP_401_UNAUTHORIZED)
 
 
+def get_admin_or_client(db: Session = Depends(get_db), token: TokenPayload | None = Depends(get_optional_token), api_key: ApiKeyPayload | None = Depends(get_optional_api_key)) -> User | ApiClient:
+    """Returns the current admin user or current active api client.
+
+    Parameters:
+        db (Session): The database session to use for querying the user or client information.
+        token (Optional[TokenPayload]): The authentication token containing the user's identification.
+        api_key (Optional[ApiKeyPayload]): The authentication key containing the client's identification.
+
+    Returns:
+        User: The current admin user.
+        ApiClient: The current active api client.
+
+    Raises:
+        HTTPException: If there is no token or no api key
+        HTTPException: If the user or api client is not found
+        HTTPException: If the user or api client is not active
+        HTTPException: If the user is not an admin
+    """
+    if token:
+        current_user = user_crud.get_one(db, User.id == token.sub)
+        if current_user is None:
+            raise _get_credential_exception(
+                status_code=status.HTTP_404_NOT_FOUND, details="User not found"
+            )
+        if not user_crud.is_active_user(current_user):
+            raise _get_credential_exception(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                details="Inactive user",
+            )
+        if not user_crud.is_super_user(current_user):
+            raise _get_credential_exception(
+                status_code=status.HTTP_403_FORBIDDEN,
+                details="Only admin users can perform this action",
+            )
+        return current_user
+    if api_key:
+        current_client = apiclient_crud.get_one(db, ApiClient.api_key == api_key.api_key)
+        if current_client is None:
+            raise _get_credential_exception(
+                status_code=status.HTTP_404_NOT_FOUND, details="Client not found"
+            )
+        if not apiclient_crud.is_active_client(current_client):
+            raise _get_credential_exception(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                details="Inactive client",
+            )
+        return current_client
+    raise _get_credential_exception(status_code=status.HTTP_401_UNAUTHORIZED)
+
+
 class RoleChecker:
     """
     Checker for routes role based access.
