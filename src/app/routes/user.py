@@ -15,7 +15,7 @@ from app.security import get_password_hash
 log = get_logger(__name__)
 
 
-router = APIRouter(dependencies=[Depends(get_current_superuser)])
+router = APIRouter()
 
 
 @router.get(
