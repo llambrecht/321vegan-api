@@ -5,6 +5,7 @@ from fastapi import APIRouter, Cookie, Response, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 
+from app.routes.dependencies import get_current_active_user
 from app import security
 from app.exceptions import _get_credential_exception
 from app.config import settings
@@ -13,6 +14,7 @@ from app.routes.dependencies import get_token
 from app.crud import user_crud
 from app.database import get_db
 from app.schemas.auth import Token, TokenPayload, PasswordResetRequest, PasswordResetConfirm, PasswordResetTokenVerify
+from app.schemas.user import UserOut
 from app.services.email import email_service
 
 router = APIRouter()
@@ -251,3 +253,18 @@ def verify_reset_token(
         )
     
     return {"detail": "Reset token is valid.", "email": user.email}
+
+@router.get("/me", response_model=UserOut, status_code=status.HTTP_200_OK)
+def read_current_user(
+    current_user: User = Depends(get_current_active_user)
+) -> User:
+    """
+    Retrieve the currently authenticated user's information.
+
+    Parameters:
+        current_user (User): The currently authenticated user.
+
+    Returns:
+        User: The current user's information.
+    """
+    return current_user
