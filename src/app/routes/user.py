@@ -197,11 +197,6 @@ def create_user(
                     status_code=status.HTTP_409_CONFLICT,
                     detail=f"User with EMAIL {user_create.email} already exists",
                 ) from e
-            elif "nickname" in error_message.lower():
-                raise HTTPException(
-                    status_code=status.HTTP_409_CONFLICT,
-                    detail=f"User with NICKNAME {user_create.nickname} already exists",
-                ) from e
         else:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -297,11 +292,6 @@ def update_user(
                     status_code=status.HTTP_409_CONFLICT,
                     detail=f"User with EMAIL {user_update.email} already exists",
                 ) from e
-            elif "nickname" in error_message.lower():
-                raise HTTPException(
-                    status_code=status.HTTP_409_CONFLICT,
-                    detail=f"User with NICKNAME {user_update.nickname} already exists",
-                ) from e
         else:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -362,11 +352,6 @@ def patch_user(
                 raise HTTPException(
                     status_code=status.HTTP_409_CONFLICT,
                     detail=f"User with EMAIL {update_data.get('email', '')} already exists",
-                ) from e
-            elif "nickname" in error_message.lower():
-                raise HTTPException(
-                    status_code=status.HTTP_409_CONFLICT,
-                    detail=f"User with NICKNAME {update_data.get('nickname', '')} already exists",
                 ) from e
         else:
             raise HTTPException(
