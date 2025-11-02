@@ -4,7 +4,7 @@ from fastapi import APIRouter, Body, Depends, HTTPException, status
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.routes.dependencies import get_current_superuser, get_pagination_params, get_sort_by_params, RoleChecker, get_current_active_user_or_client, get_admin_or_client
+from app.routes.dependencies import get_current_superuser, get_pagination_params, get_sort_by_params, RoleChecker, get_current_active_user_or_client, get_admin_or_client, get_current_active_user
 from app.crud import user_crud
 from app.database.db import get_db
 from app.log import get_logger
@@ -210,28 +210,29 @@ def create_user(
     return user
 
 
-@router.delete("/{id}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(RoleChecker([ "admin"]))])
+@router.delete("/{id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_user(
     id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_superuser),
+    current_user: User = Depends(get_current_active_user),
 ):
     """
     Delete a user by user ID.
 
+    - Admins can delete any user except themselves.
+    - Regular users can only delete their own account.
+
     Parameters:
         id (int): The ID of the user to delete.
         db (Session, optional): The database session. Defaults to Depends(get_db).
-        current_user (User, optional): The current authenticated superuser.
+        current_user (User, optional): The current authenticated user.
 
     Raises:
-        HTTPException: If the user is not found or the user tries to delete themselves.
+        HTTPException: If the user is not found or the user tries to delete themselves (admin).
+        HTTPException: If a non-admin tries to delete another user.
         HTTPException: If there is an error deleting the user.
-        HTTPException: If the user does not have enough
-            permissions to access to this endpoint.
     Returns:
         None
-
     """
     user = user_crud.get_one(db, User.id == id)
     if user is None:
@@ -240,11 +241,20 @@ def delete_user(
             detail=f"User with id {id} not found. Cannot delete.",
         )
 
-    if user.id == current_user.id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You cannot delete yourself",
-        )
+    # If admin, cannot delete themselves
+    if "admin" in getattr(current_user, "role", []):
+        if user.id == current_user.id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Admins cannot delete themselves",
+            )
+    # If not admin, can only delete themselves
+    else:
+        if user.id != current_user.id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You can only delete your own account",
+            )
     try:
         user_crud.delete(db, user)
     except Exception as e:
