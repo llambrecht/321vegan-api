@@ -315,7 +315,7 @@ def update_user(
     return user
 
 
-@router.patch("/{id}", response_model=UserOut, status_code=status.HTTP_200_OK, dependencies=[Depends(RoleChecker(["admin"]))])
+@router.patch("/{id}", response_model=UserOut, status_code=status.HTTP_200_OK, dependencies=[Depends(get_admin_or_client)])
 def patch_user(
     id: int,
     user_patch: UserPatch,
