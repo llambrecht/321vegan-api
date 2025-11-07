@@ -1,9 +1,7 @@
 from typing import List, Optional, TYPE_CHECKING
 from pydantic import BaseModel, EmailStr, field_validator
 from datetime import datetime, timezone
-
-if TYPE_CHECKING:
-    from app.schemas.error_report import ErrorReportOut
+from app.schemas.error_report import ErrorReportOut
 
 class UserBase(BaseModel):
     role: str
@@ -79,5 +77,4 @@ class UserPatch(BaseModel):
     password: Optional[str] = None
 
 
-from app.schemas.error_report import ErrorReportOut
 UserOut.model_rebuild()
