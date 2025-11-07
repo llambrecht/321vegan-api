@@ -8,6 +8,7 @@ class ErrorReportBase(BaseModel):
     comment: str = Field(..., min_length=1)
     contact: Optional[str] = None
     handled: Optional[bool] = False
+    created_by: Optional[int] = None
 
 
 class ErrorReportCreate(ErrorReportBase):
@@ -34,6 +35,7 @@ class ErrorReportOut(BaseModel):
     comment: str
     contact: Optional[str] = None
     handled: bool
+    created_by: Optional[int] = None
     product: Optional[Product] = None
 
     class Config:

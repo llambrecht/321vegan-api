@@ -1,6 +1,7 @@
-from typing import List, Optional
+from typing import List, Optional, TYPE_CHECKING
 from pydantic import BaseModel, EmailStr, field_validator
 from datetime import datetime, timezone
+from app.schemas.error_report import ErrorReportOut
 
 class UserBase(BaseModel):
     role: str
@@ -30,6 +31,7 @@ class UserOut(UserBase):
     avatar: Optional[str] = None
     roles: List
     nb_products_sent: int = 0
+    error_reports: List['ErrorReportOut'] = []
 
     @field_validator('nb_products_sent', mode='before')
     @classmethod
@@ -73,3 +75,6 @@ class UserPatch(BaseModel):
     vegan_since: Optional[datetime] = None
     nb_products_sent: Optional[int] = None
     password: Optional[str] = None
+
+
+UserOut.model_rebuild()

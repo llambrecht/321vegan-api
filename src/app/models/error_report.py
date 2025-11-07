@@ -14,6 +14,10 @@ class ErrorReport(Base):
     comment = Column(String, nullable=False)
     contact = Column(String, nullable=True)
     handled = Column(Boolean, default=False)
+    created_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+    
+    # relationships
+    user = relationship("User", back_populates="error_reports")
     # orm only foreignkey
     product = relationship(
         'Product', 
