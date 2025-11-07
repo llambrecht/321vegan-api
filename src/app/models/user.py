@@ -30,6 +30,7 @@ class User(Base):
         back_populates="user",
         cascade="all, delete",
         passive_deletes=True,)
+    error_reports = relationship("ErrorReport", back_populates="user")
 
     @property
     def roles(self) -> list:
