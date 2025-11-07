@@ -79,6 +79,5 @@ class UserPatch(BaseModel):
     password: Optional[str] = None
 
 
-# Resolve forward references after all models are defined
 from app.schemas.error_report import ErrorReportOut
 UserOut.model_rebuild()
