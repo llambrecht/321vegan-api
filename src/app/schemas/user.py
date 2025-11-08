@@ -10,6 +10,7 @@ class UserBase(BaseModel):
     is_active: bool = False
     vegan_since: Optional[datetime] = None
     nb_products_sent: Optional[int] = 0
+    supporter: Optional[int] = 0
 
 class UserCreate(UserBase):
     password: str
@@ -32,11 +33,18 @@ class UserOut(UserBase):
     roles: List
     nb_products_sent: int = 0
     error_reports: List['ErrorReportOut'] = []
+    supporter: int = 0
 
     @field_validator('nb_products_sent', mode='before')
     @classmethod
     def validate_nb_products_sent(cls, v):
         """Convert None to 0 for nb_products_sent"""
+        return 0 if v is None else v
+    
+    @field_validator('supporter', mode='before')
+    @classmethod
+    def validate_supporter(cls, v):
+        """Convert None to 0 for supporter"""
         return 0 if v is None else v
 
     class Config:
@@ -74,6 +82,7 @@ class UserPatch(BaseModel):
     is_active: Optional[bool] = None
     vegan_since: Optional[datetime] = None
     nb_products_sent: Optional[int] = None
+    supporter: Optional[int] = None
     password: Optional[str] = None
 
 
