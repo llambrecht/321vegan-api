@@ -1,6 +1,6 @@
 import enum
 from datetime import datetime
-from sqlalchemy import Column, Integer, String, Boolean, Enum, DateTime
+from sqlalchemy import Column, Integer, SmallInteger, String, Boolean, Enum, DateTime
 from sqlalchemy.orm import relationship
 from sqlalchemy.ext.hybrid import hybrid_method
 from app.database.base_class import Base
@@ -24,6 +24,7 @@ class User(Base):
     avatar = Column(String, nullable=True)
     vegan_since = Column(DateTime, nullable=True)
     nb_products_sent = Column(Integer, default=0)
+    supporter = Column(SmallInteger, default=0, nullable=False)
     reset_token = Column(String, nullable=True)
     reset_token_expires = Column(DateTime, nullable=True)
     checkings = relationship("Checking", 
