@@ -35,7 +35,12 @@ def get_engine(database_url: str, echo=False) -> Engine:
     Returns:
         Engine: A SQLAlchemy Engine object representing the database connection.
     """
-    engine = create_engine(database_url, echo=echo)
+    engine = create_engine(
+        database_url,
+        echo=echo,
+        pool_pre_ping=True,  # Verify connections before using them (not default)
+        pool_recycle=3600,  # Recycle connections after 1 hour to avoid stale connections (not default)
+    )
     return engine
 
 
@@ -58,3 +63,7 @@ def get_local_session(database_url: str, echo=False, **kwargs) -> sessionmaker:
 
 
 SQLALCHEMY_DATABASE_URL = build_sqlalchemy_database_url_from_env(settings)
+
+# Create a single engine and sessionmaker to be reused across all requests
+engine = get_engine(SQLALCHEMY_DATABASE_URL, echo=False)
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
