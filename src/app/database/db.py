@@ -1,7 +1,7 @@
 from contextlib import contextmanager
 from typing import Generator
 
-from app.database.session import SQLALCHEMY_DATABASE_URL, get_local_session
+from app.database.session import SessionLocal, get_local_session
 from app.log import get_logger
 
 log = get_logger(__name__)
@@ -19,7 +19,7 @@ def get_db() -> Generator:
     """
 
     log.debug("getting database session")
-    db = get_local_session(SQLALCHEMY_DATABASE_URL, False)()
+    db = SessionLocal()
     try:
         yield db
     finally: 
