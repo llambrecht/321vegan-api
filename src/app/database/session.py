@@ -38,8 +38,8 @@ def get_engine(database_url: str, echo=False) -> Engine:
     engine = create_engine(
         database_url,
         echo=echo,
-        pool_pre_ping=True,  # Verify connections before using them (not default)
-        pool_recycle=3600,  # Recycle connections after 1 hour to avoid stale connections (not default)
+        pool_pre_ping=True,  # Verify connections before using them
+        pool_recycle=3600,  # Recycle connections after 1 hour to avoid stale connections
     )
     return engine
 
