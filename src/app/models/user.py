@@ -35,6 +35,11 @@ class User(Base):
     error_reports = relationship("ErrorReport", back_populates="user")
 
     @property
+    def nb_checkings(self) -> int:
+        """Return the number of checkings made by the user"""
+        return len(self.checkings) if self.checkings else 0
+
+    @property
     def roles(self) -> list:
         roles = list(UserRole)
         index = roles.index(self.role)

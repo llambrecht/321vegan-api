@@ -34,6 +34,7 @@ class UserOut(UserBase):
     roles: List
     nb_products_sent: int = 0
     nb_products_modified: int = 0
+    nb_checkings: int = 0
     error_reports: List['ErrorReportOut'] = []
     supporter: int = 0
 
