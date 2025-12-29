@@ -24,6 +24,7 @@ class User(Base):
     avatar = Column(String, nullable=True)
     vegan_since = Column(DateTime, nullable=True)
     nb_products_sent = Column(Integer, default=0)
+    nb_products_modified = Column(Integer, default=0)
     supporter = Column(SmallInteger, default=0, nullable=False)
     reset_token = Column(String, nullable=True)
     reset_token_expires = Column(DateTime, nullable=True)
@@ -32,6 +33,11 @@ class User(Base):
         cascade="all, delete",
         passive_deletes=True,)
     error_reports = relationship("ErrorReport", back_populates="user")
+
+    @property
+    def nb_checkings(self) -> int:
+        """Return the number of checkings made by the user"""
+        return len(self.checkings) if self.checkings else 0
 
     @property
     def roles(self) -> list:
