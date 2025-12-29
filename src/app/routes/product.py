@@ -298,6 +298,15 @@ def update_product(
                 **dict_product_update,
             )
         product = product_crud.update(db, product, product_update)
+        
+        # Set last_modified_by to current user
+        product.last_modified_by = active_user.id
+        
+        # Increment user's nb_products_modified counter
+        active_user.nb_products_modified = (active_user.nb_products_modified or 0) + 1
+        db.commit()
+        db.refresh(active_user)
+        db.refresh(product)
     except IntegrityError as e:
         error_message = str(e.orig)
         if "unique constraint" in error_message.lower() and "ean" in error_message.lower():

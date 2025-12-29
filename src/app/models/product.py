@@ -40,6 +40,7 @@ class Product(Base):
     state = Column(Enum(ProductState), default=ProductState.CREATED)
     created_from_off = Column(Boolean, default=False)
     has_non_vegan_old_receipe = Column(Boolean, nullable=True)
+    last_modified_by = Column(Integer, ForeignKey("users.id"), nullable=True)
     checkings = relationship("Checking", 
         back_populates="product",
         cascade="all, delete",
