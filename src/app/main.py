@@ -17,6 +17,9 @@ from app.routes import (
     checking_router,
     scoring_router,
     healthcheck_router,
+    product_category_router,
+    interesting_product_router,
+    scan_event_router,
 )
 from app.log import get_logger
 
@@ -73,6 +76,9 @@ app.include_router(export_router, prefix="/export", tags=["export"])
 app.include_router(checking_router, prefix="/checkings", tags=["checking"])
 app.include_router(scoring_router, prefix="/scoring", tags=["scoring"])
 app.include_router(healthcheck_router, prefix="/healthcheck", tags=["healthcheck"])
+app.include_router(product_category_router, prefix="/product-categories", tags=["product_category"])
+app.include_router(interesting_product_router, prefix="/interesting-products", tags=["interesting_product"])
+app.include_router(scan_event_router, prefix="/scan-events", tags=["scan_event"])
 
 # Serve static files
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")

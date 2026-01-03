@@ -4,6 +4,9 @@ from app.crud.product import product_crud
 from app.crud.apiclient import apiclient_crud
 from app.crud.error_reports import error_report_crud
 from app.crud.checking import checking_crud
+from app.crud.product_category import product_category_crud
+from app.crud.interesting_product import interesting_product_crud
+from app.crud.scan_event import scan_event_crud
 from app.crud import scoring
 
 __all__ = [
@@ -13,5 +16,8 @@ __all__ = [
     "apiclient_crud",
     "error_report_crud",
     "checking_crud",
+    "product_category_crud",
+    "interesting_product_crud",
+    "scan_event_crud",
     "scoring",
 ]
