@@ -46,3 +46,10 @@ class ScanEventOutPaginated(BaseModel):
     page: int
     size: int
     pages: int
+
+
+class ScanEventFilters(BaseModel):
+    """Filters for scan events search."""
+    ean: Optional[str] = None
+    user_id: Optional[int] = None
+    shop_name: Optional[str] = None

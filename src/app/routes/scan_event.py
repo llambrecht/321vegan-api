@@ -9,7 +9,7 @@ from app.crud import scan_event_crud
 from app.database.db import get_db
 from app.log import get_logger
 from app.models import ScanEvent, User
-from app.schemas.scan_event import ScanEventCreate, ScanEventOut, ScanEventUpdate, ScanEventOutPaginated
+from app.schemas.scan_event import ScanEventCreate, ScanEventOut, ScanEventUpdate, ScanEventOutPaginated, ScanEventFilters
 
 log = get_logger(__name__)
 
@@ -38,14 +38,16 @@ def fetch_all_scan_events(db: Session = Depends(get_db)) -> List[Optional[ScanEv
     "/search", response_model=Optional[ScanEventOutPaginated], status_code=status.HTTP_200_OK
 )
 def fetch_paginated_scan_events(
+    filter_params: ScanEventFilters = Depends(),
     db: Session = Depends(get_db),
     pagination_params: Tuple[int, int] = Depends(get_pagination_params),
     orderby_params: Tuple[str, bool] = Depends(get_sort_by_params),
 ) -> Optional[ScanEventOutPaginated]:
     """
-    Fetch many scan events with pagination.
+    Fetch many scan events with pagination and filters.
 
     Parameters:
+        filter_params (ScanEventFilters): Filter parameters.
         db (Session): The database session.
         pagination_params (Tuple[int, int]): The pagination parameters (skip, limit).
         orderby_params (Tuple[str, bool]): The order by parameters (sortby, descending).
@@ -55,12 +57,14 @@ def fetch_paginated_scan_events(
     """
     page, size = pagination_params
     sortby, descending = orderby_params
+    filters = filter_params.model_dump(exclude_none=True)
     events, total = scan_event_crud.get_many(
         db, 
         skip=page, 
         limit=size, 
         order_by=sortby, 
-        descending=descending
+        descending=descending,
+        filters=filters
     )
     pages = (total + size - 1) // size
     return {
@@ -93,27 +97,6 @@ def fetch_scan_events_by_ean(
     """
     return scan_event_crud.get_by_ean(db, ean, limit)
 
-
-@router.get(
-    "/by-user/{user_id}", response_model=List[Optional[ScanEventOut]], status_code=status.HTTP_200_OK
-)
-def fetch_scan_events_by_user(
-    user_id: int, 
-    limit: int = Query(default=100, ge=1, le=1000),
-    db: Session = Depends(get_db)
-) -> List[Optional[ScanEventOut]]:
-    """
-    Fetch scan events by user ID.
-
-    Parameters:
-        user_id (int): The ID of the user.
-        limit (int): Maximum number of results to return (default 100, max 1000).
-        db (Session): The database session.
-
-    Returns:
-        List[Optional[ScanEventOut]]: The list of scan events for the given user.
-    """
-    return scan_event_crud.get_by_user(db, user_id, limit)
 
 @router.get(
     "/{id}",
