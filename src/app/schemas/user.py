@@ -3,6 +3,13 @@ from pydantic import BaseModel, EmailStr, field_validator
 from datetime import datetime, timezone
 from app.schemas.error_report import ErrorReportOut
 
+
+class ScanSummaryItem(BaseModel):
+    """Schema for scan summary item with EAN and scan count"""
+    ean: str
+    scan_count: int
+
+
 class UserBase(BaseModel):
     role: str
     email: EmailStr
@@ -37,6 +44,7 @@ class UserOut(UserBase):
     nb_checkings: int = 0
     error_reports: List['ErrorReportOut'] = []
     supporter: int = 0
+    scanned_products: List[ScanSummaryItem] = []
 
     @field_validator('nb_products_sent', mode='before')
     @classmethod

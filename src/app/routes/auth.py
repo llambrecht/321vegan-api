@@ -12,9 +12,10 @@ from app.config import settings
 from app.models import User
 from app.routes.dependencies import get_token
 from app.crud import user_crud
+from app.crud.scan_event import scan_event_crud
 from app.database import get_db
 from app.schemas.auth import Token, TokenPayload, PasswordResetRequest, PasswordResetConfirm, PasswordResetTokenVerify
-from app.schemas.user import UserOut
+from app.schemas.user import UserOut, ScanSummaryItem
 from app.services.email import email_service
 
 router = APIRouter()
@@ -256,15 +257,20 @@ def verify_reset_token(
 
 @router.get("/me", response_model=UserOut, status_code=status.HTTP_200_OK)
 def read_current_user(
-    current_user: User = Depends(get_current_active_user)
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
 ) -> User:
     """
     Retrieve the currently authenticated user's information.
 
     Parameters:
         current_user (User): The currently authenticated user.
+        db (Session): Database session.
 
     Returns:
-        User: The current user's information.
+        User: The current user's information with scan summary.
     """
+    # Get scan summary for the user
+    current_user.scanned_products = scan_event_crud.get_user_scan_summary(db, current_user.id)
+    
     return current_user

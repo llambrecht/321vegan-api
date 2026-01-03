@@ -38,5 +38,31 @@ class ScanEventCRUDRepository(CRUDRepository):
         return db.query(self._model).filter(
             self._model.user_id == user_id
         ).order_by(self._model.date_created.desc()).limit(limit).all()
+    
+    def get_user_scan_summary(self, db: Session, user_id: int) -> list[dict]:
+        """
+        Get aggregated scan statistics for a user.
+        Returns EANs with their scan counts.
+
+        Parameters:
+            db (Session): The database session.
+            user_id (int): The user ID.
+
+        Returns:
+            list[dict]: List of {ean: str, scan_count: int} ordered by scan count desc.
+        """
+        result = db.query(
+            self._model.ean,
+            func.count(self._model.id).label('scan_count')
+        ).filter(
+            self._model.user_id == user_id
+        ).group_by(
+            self._model.ean
+        ).order_by(
+            func.count(self._model.id).desc()
+        ).all()
+        
+        return [{"ean": row.ean, "scan_count": row.scan_count} for row in result]
+
 
 scan_event_crud = ScanEventCRUDRepository(model=ScanEvent)
