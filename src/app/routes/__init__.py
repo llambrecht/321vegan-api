@@ -10,6 +10,9 @@ from app.routes.export import router as export_router
 from app.routes.checking import router as checking_router
 from app.routes.scoring import router as scoring_router
 from app.routes.healthcheck import router as healthcheck_router
+from app.routes.product_category import router as product_category_router
+from app.routes.interesting_product import router as interesting_product_router
+from app.routes.scan_event import router as scan_event_router
 
 
 __all__ = [
@@ -25,4 +28,7 @@ __all__ = [
     "checking_router",
     "scoring_router",
     "healthcheck_router",
+    "product_category_router",
+    "interesting_product_router",
+    "scan_event_router",
 ]
