@@ -8,7 +8,7 @@ log = get_logger(__name__)
 class OpenStreetMapService:
     """Service to interact with OpenStreetMap Overpass API."""
     
-    OVERPASS_API_URL = "https://overpass-api.de/api/interpreter"
+    OVERPASS_API_URL = "https://overpass.kumi.systems/api/interpreter"
     TIMEOUT = 20.0  # seconds
     
     @staticmethod
@@ -24,13 +24,14 @@ class OpenStreetMapService:
         Returns:
             Optional[Dict[str, Any]]: Shop data from OSM, or None if not found.
         """
-        # Build Overpass QL query - remove extra whitespace
-        query = f"[out:json][timeout:3600];(node(around:{radius_meters},{latitude},{longitude})[\"shop\"=\"supermarket\"];);out center;"
+        
+        query = f"[out:json][timeout:3600];(node(around:{radius_meters},{latitude},{longitude})[\"shop\"~\"^(supermarket|convenience|greengrocer|food)$\"];way(around:{radius_meters},{latitude},{longitude})[\"shop\"~\"^(supermarket|convenience|greengrocer|food)$\"];);out center;"
         
         try:
             async with httpx.AsyncClient(timeout=OpenStreetMapService.TIMEOUT) as client:
                 response = await client.post(
                     OpenStreetMapService.OVERPASS_API_URL,
+                    headers={"User-Agent": "321vegan-api/1.0 (contact@321vegan.fr)"},
                     data={"data": query}
                 )
                 response.raise_for_status()
