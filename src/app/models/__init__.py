@@ -9,3 +9,4 @@ from app.models.scoring import Category, Criterion, BrandCriterionScore
 from app.models.product_category import ProductCategory
 from app.models.interesting_product import InterestingProduct, InterestingProductType
 from app.models.scan_event import ScanEvent
+from app.models.shop import Shop

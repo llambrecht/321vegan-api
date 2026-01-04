@@ -6,10 +6,13 @@ from sqlalchemy.orm import Session
 
 from app.routes.dependencies import get_current_active_user, get_pagination_params, get_sort_by_params, RoleChecker
 from app.crud import scan_event_crud
+from app.crud.shop import shop_crud
 from app.database.db import get_db
 from app.log import get_logger
 from app.models import ScanEvent, User
 from app.schemas.scan_event import ScanEventCreate, ScanEventOut, ScanEventUpdate, ScanEventOutPaginated, ScanEventFilters
+from app.schemas.shop import ShopCreate
+from app.services.openstreetmap import osm_service
 
 log = get_logger(__name__)
 
@@ -135,7 +138,7 @@ def fetch_scan_event_by_id(
     response_model_exclude_none=True,
     response_model_exclude_unset=True,
 )
-def create_scan_event(
+async def create_scan_event(
     event_create: Annotated[
         ScanEventCreate,
         Body(
@@ -144,7 +147,7 @@ def create_scan_event(
                     "ean": "1234567890123",
                     "latitude": 48.8566,
                     "longitude": 2.3522,
-                    "shop_name": "Carrefour",
+                    "shop_id": 1,
                     "lookup_api_response": '{"status": "success"}',
                     "user_id": 1
                 }
@@ -156,6 +159,12 @@ def create_scan_event(
 ):
     """
     Create a scan event.
+    
+    If latitude/longitude are provided and no shop_id is set, the system will:
+    1. Check if a shop exists within 20 meters
+    2. If not, query OpenStreetMap for nearby shops
+    3. Create the shop in the database if found
+    4. Link the scan event to the shop
 
     Parameters:
         event_create (ScanEventCreate): The scan event data to be created.
@@ -169,6 +178,49 @@ def create_scan_event(
         HTTPException: If the user does not exist.
         HTTPException: If there is an error creating the scan event.
     """
+    # If coordinates provided but no shop_id, try to find or create shop
+    if event_create.latitude and event_create.longitude and not event_create.shop_id:
+        log.info(f"Searching for shop near ({event_create.latitude}, {event_create.longitude})")
+        
+        # Check if shop exists within 20 meters
+        existing_shop = shop_crud.find_nearby(
+            db, 
+            event_create.latitude, 
+            event_create.longitude, 
+            radius_meters=100
+        )
+        
+        if existing_shop:
+            log.info(f"Found existing shop: {existing_shop.name} (ID: {existing_shop.id})")
+            event_create.shop_id = existing_shop.id
+        else:
+            # Query OpenStreetMap for nearby shops
+            log.info("No shop found locally, querying OpenStreetMap...")
+            osm_shop_data = await osm_service.find_nearby_shop(
+                event_create.latitude,
+                event_create.longitude,
+                radius_meters=100
+            )
+            
+            if osm_shop_data:
+                # Check if shop with this OSM ID already exists
+                existing_osm_shop = shop_crud.get_by_osm_id(db, osm_shop_data["osm_id"])
+                
+                if existing_osm_shop:
+                    log.info(f"Shop with OSM ID {osm_shop_data['osm_id']} already exists: {existing_osm_shop.name}")
+                    event_create.shop_id = existing_osm_shop.id
+                else:
+                    # Create new shop from OSM data
+                    try:
+                        new_shop = shop_crud.create(db, ShopCreate(**osm_shop_data))
+                        log.info(f"Created new shop from OSM: {new_shop.name} (ID: {new_shop.id})")
+                        event_create.shop_id = new_shop.id
+                    except IntegrityError as e:
+                        log.error(f"Error creating shop from OSM data: {e}")
+                        db.rollback()
+            else:
+                log.info("No shop found on OpenStreetMap")
+    
     try:
         event = scan_event_crud.create(db, event_create)
     except IntegrityError as e:
@@ -177,6 +229,11 @@ def create_scan_event(
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"User with id {event_create.user_id} does not exist",
+            ) from e
+        elif "foreign key constraint" in error_message.lower() and "shop_id" in error_message.lower():
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Shop with id {event_create.shop_id} does not exist",
             ) from e
         else:
             raise HTTPException(

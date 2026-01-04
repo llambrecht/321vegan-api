@@ -13,6 +13,7 @@ from app.routes.healthcheck import router as healthcheck_router
 from app.routes.product_category import router as product_category_router
 from app.routes.interesting_product import router as interesting_product_router
 from app.routes.scan_event import router as scan_event_router
+from app.routes.shop import router as shop_router
 
 
 __all__ = [
@@ -31,4 +32,5 @@ __all__ = [
     "product_category_router",
     "interesting_product_router",
     "scan_event_router",
+    "shop_router",
 ]
