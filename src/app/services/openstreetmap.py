@@ -40,12 +40,10 @@ class OpenStreetMapService:
                 elements = data.get("elements", [])
                 
                 if not elements:
-                    log.info(f"No shop found near ({latitude}, {longitude}) within {radius_meters}m")
                     return None
                 
                 # Return the first shop found
                 shop = elements[0]
-                log.info(f"Found shop from OSM: {shop.get('tags', {}).get('name', 'Unknown')} (ID: {shop.get('id')})")
                 
                 parsed_shop = OpenStreetMapService._parse_osm_shop(shop)
                 

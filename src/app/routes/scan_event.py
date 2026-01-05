@@ -160,11 +160,13 @@ async def create_scan_event(
     """
     Create a scan event.
     
-    If latitude/longitude are provided and no shop_id is set, the system will:
-    1. Check if a shop exists within 20 meters
-    2. If not, query OpenStreetMap for nearby shops
+    If latitude/longitude are provided and no shop_id is set :
+    1. Check if a shop exists within 100 meters
+    2. If not, query OpenStreetMap for nearby shops (also 100 meters)
     3. Create the shop in the database if found
     4. Link the scan event to the shop
+
+    Note that if OSM api times out or fail, the scan event will still be created without shop
 
     Parameters:
         event_create (ScanEventCreate): The scan event data to be created.
@@ -178,11 +180,9 @@ async def create_scan_event(
         HTTPException: If the user does not exist.
         HTTPException: If there is an error creating the scan event.
     """
-    # If coordinates provided but no shop_id, try to find or create shop
-    if event_create.latitude and event_create.longitude and not event_create.shop_id:
-        log.info(f"Searching for shop near ({event_create.latitude}, {event_create.longitude})")
-        
-        # Check if shop exists within 20 meters
+    # Find or create a shop
+    if event_create.latitude and event_create.longitude and not event_create.shop_id:        
+        # Check if shop exists within 100 meters
         existing_shop = shop_crud.find_nearby(
             db, 
             event_create.latitude, 
@@ -191,11 +191,9 @@ async def create_scan_event(
         )
         
         if existing_shop:
-            log.info(f"Found existing shop: {existing_shop.name} (ID: {existing_shop.id})")
             event_create.shop_id = existing_shop.id
         else:
             # Query OpenStreetMap for nearby shops
-            log.info("No shop found locally, querying OpenStreetMap...")
             osm_shop_data = await osm_service.find_nearby_shop(
                 event_create.latitude,
                 event_create.longitude,
@@ -203,23 +201,19 @@ async def create_scan_event(
             )
             
             if osm_shop_data:
-                # Check if shop with this OSM ID already exists
+                # Verify if shop with same OSM ID already exists
+                # As we might not have found it but still could exist
                 existing_osm_shop = shop_crud.get_by_osm_id(db, osm_shop_data["osm_id"])
                 
                 if existing_osm_shop:
-                    log.info(f"Shop with OSM ID {osm_shop_data['osm_id']} already exists: {existing_osm_shop.name}")
                     event_create.shop_id = existing_osm_shop.id
                 else:
-                    # Create new shop from OSM data
+                    # Create new shop
                     try:
                         new_shop = shop_crud.create(db, ShopCreate(**osm_shop_data))
-                        log.info(f"Created new shop from OSM: {new_shop.name} (ID: {new_shop.id})")
                         event_create.shop_id = new_shop.id
                     except IntegrityError as e:
-                        log.error(f"Error creating shop from OSM data: {e}")
                         db.rollback()
-            else:
-                log.info("No shop found on OpenStreetMap")
     
     try:
         event = scan_event_crud.create(db, event_create)
