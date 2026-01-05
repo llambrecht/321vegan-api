@@ -4,6 +4,7 @@ from sqlalchemy import func, or_, distinct
 from app.crud.base import CRUDRepository
 from app.models.shop import Shop
 from app.models.scan_event import ScanEvent
+import math
 
 
 class ShopCRUDRepository(CRUDRepository):
@@ -90,7 +91,6 @@ class ShopCRUDRepository(CRUDRepository):
         
         # Calculate exact distance
         for shop in shops:
-            import math
             a = (math.sin(math.radians(shop.latitude - latitude) / 2) ** 2 +
                  math.cos(math.radians(latitude)) * math.cos(math.radians(shop.latitude)) *
                  math.sin(math.radians(shop.longitude - longitude) / 2) ** 2)
