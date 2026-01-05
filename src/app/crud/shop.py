@@ -1,11 +1,60 @@
-from typing import Optional
+from typing import Optional, List, Tuple
 from sqlalchemy.orm import Session
-from sqlalchemy import func, or_
+from sqlalchemy import func, or_, distinct
 from app.crud.base import CRUDRepository
 from app.models.shop import Shop
+from app.models.scan_event import ScanEvent
 
 
 class ShopCRUDRepository(CRUDRepository):
+    def get_many(
+        self, 
+        db: Session, 
+        *args, 
+        skip: int = 0, 
+        limit: int = 100, 
+        order_by: str = 'created_at', 
+        descending: bool = False, 
+        filters: dict = None,
+        **kwargs
+    ) -> Tuple[List[Shop], int]:
+        """
+        Override get_many to handle eans filter specially.
+        
+        Parameters:
+            db (Session): The database session.
+            skip (int): Number of records to skip.
+            limit (int): Maximum number of records to retrieve.
+            order_by (str): Field name to order by.
+            descending (bool): Sort direction.
+            filters (dict): Filter parameters.
+            
+        Returns:
+            Tuple[List[Shop], int]: List of shops and total count.
+        """
+        eans = None
+        if filters and 'ean__in' in filters:
+            ean_string = filters.pop('ean__in')
+            eans = [ean.strip() for ean in ean_string.split(',')]
+        
+        if eans:
+            shop_ids = self.get_shops_by_eans(db, eans)
+            if not shop_ids:
+                return [], 0
+            filters = filters or {}
+            filters['id__in'] = shop_ids
+        
+        return super().get_many(
+            db, 
+            *args, 
+            skip=skip, 
+            limit=limit, 
+            order_by=order_by, 
+            descending=descending, 
+            filters=filters,
+            **kwargs
+        )
+    
     def find_nearby(
         self, 
         db: Session, 
@@ -25,12 +74,12 @@ class ShopCRUDRepository(CRUDRepository):
         Returns:
             Optional[Shop]: The nearest shop within radius, or None.
         """
-        # Haversine formula to calculate distance
-        # Earth radius in meters
+        # Calculate distance using Haversine formula
+        # https://en.wikipedia.org/wiki/Haversine_formula
         earth_radius = 6371000
         
         # Convert radius to degrees (approximate)
-        lat_range = radius_meters / 111320  # 1 degree latitude ≈ 111.32 km
+        lat_range = radius_meters / 111320 
         lon_range = radius_meters / (111320 * func.cos(func.radians(latitude)))
         
         # Find shops in the bounding box first (faster)
@@ -39,11 +88,8 @@ class ShopCRUDRepository(CRUDRepository):
             self._model.longitude.between(longitude - lon_range, longitude + lon_range)
         ).all()
         
-        # Calculate exact distance using Haversine formula for shops in bounding box
+        # Calculate exact distance
         for shop in shops:
-            dlat = func.radians(shop.latitude - latitude)
-            dlon = func.radians(shop.longitude - longitude)
-            
             import math
             a = (math.sin(math.radians(shop.latitude - latitude) / 2) ** 2 +
                  math.cos(math.radians(latitude)) * math.cos(math.radians(shop.latitude)) *
@@ -68,6 +114,24 @@ class ShopCRUDRepository(CRUDRepository):
             Optional[Shop]: The shop with the given OSM ID, or None.
         """
         return db.query(self._model).filter(self._model.osm_id == osm_id).first()
+    
+    def get_shops_by_eans(self, db: Session, eans: List[str]) -> List[int]:
+        """
+        Get shop IDs that have products with the given EAN codes.
+        
+        Parameters:
+            db (Session): The database session.
+            eans (List[str]): List of EAN codes to search for.
+            
+        Returns:
+            List[int]: List of shop IDs that have these products.
+        """
+        shop_ids = db.query(distinct(ScanEvent.shop_id)).filter(
+            ScanEvent.shop_id.isnot(None),
+            ScanEvent.ean.in_(eans)
+        ).all()
+        
+        return [shop_id[0] for shop_id in shop_ids]
 
 
 shop_crud = ShopCRUDRepository(model=Shop)

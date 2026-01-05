@@ -45,7 +45,7 @@ def fetch_paginated_shops(
     Fetch many shops with pagination and filters.
 
     Parameters:
-        filter_params (ShopFilters): Filter parameters.
+        filter_params (ShopFilters): Filter parameters (name, city, country, shop_type, ean__in).
         db (Session): The database session.
         pagination_params (Tuple[int, int]): The pagination parameters (skip, limit).
         orderby_params (Tuple[str, bool]): The order by parameters (sortby, descending).

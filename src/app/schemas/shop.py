@@ -60,3 +60,4 @@ class ShopFilters(BaseModel):
     city: Optional[str] = None
     country: Optional[str] = None
     shop_type: Optional[str] = None
+    ean__in: Optional[str] = None
