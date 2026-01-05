@@ -20,6 +20,7 @@ from app.routes import (
     product_category_router,
     interesting_product_router,
     scan_event_router,
+    shop_router,
 )
 from app.log import get_logger
 
@@ -79,6 +80,7 @@ app.include_router(healthcheck_router, prefix="/healthcheck", tags=["healthcheck
 app.include_router(product_category_router, prefix="/product-categories", tags=["product_category"])
 app.include_router(interesting_product_router, prefix="/interesting-products", tags=["interesting_product"])
 app.include_router(scan_event_router, prefix="/scan-events", tags=["scan_event"])
+app.include_router(shop_router, prefix="/shops", tags=["shop"])
 
 # Serve static files
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")

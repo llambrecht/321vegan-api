@@ -5,3 +5,4 @@ passlib[bcrypt]
 python-multipart
 pydantic-settings
 pydantic[email]
+httpx

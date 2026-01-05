@@ -12,9 +12,15 @@ class ScanEvent(Base):
     ean = Column(String, nullable=False, index=True)
     latitude = Column(Float, nullable=True)
     longitude = Column(Float, nullable=True)
-    shop_name = Column(String, nullable=True)
+    shop_id = Column(Integer, ForeignKey("shops.id"), nullable=True, index=True)
     lookup_api_response = Column(Text, nullable=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     
-    # Relationship with user
+    # Relationships
     user = relationship("User")
+    shop = relationship("Shop", backref="scan_events")
+    
+    @property
+    def shop_name(self) -> str:
+        """Get shop name from relationship."""
+        return self.shop.name if self.shop else None

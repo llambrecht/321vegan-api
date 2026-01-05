@@ -7,7 +7,7 @@ class ScanEventBase(BaseModel):
     ean: str = Field(..., min_length=1)
     latitude: Optional[float] = None
     longitude: Optional[float] = None
-    shop_name: Optional[str] = None
+    shop_id: Optional[int] = None
     lookup_api_response: Optional[str] = None
     user_id: Optional[int] = None
 
@@ -20,7 +20,7 @@ class ScanEventUpdate(BaseModel):
     ean: Optional[str] = Field(None, min_length=1)
     latitude: Optional[float] = None
     longitude: Optional[float] = None
-    shop_name: Optional[str] = None
+    shop_id: Optional[int] = None
     lookup_api_response: Optional[str] = None
     user_id: Optional[int] = None
 
@@ -32,6 +32,7 @@ class ScanEventInDB(ScanEventBase):
 
 class ScanEventOut(ScanEventInDB):
     user_nickname: Optional[str] = None
+    shop_name: Optional[str] = None
 
     class Config:
         from_attributes = True
@@ -52,4 +53,4 @@ class ScanEventFilters(BaseModel):
     """Filters for scan events search."""
     ean: Optional[str] = None
     user_id: Optional[int] = None
-    shop_name: Optional[str] = None
+    shop_id: Optional[int] = None
