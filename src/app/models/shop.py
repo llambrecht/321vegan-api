@@ -16,8 +16,8 @@ class Shop(Base):
     address = Column(String, nullable=True)
     city = Column(String, nullable=True)
     country = Column(String, nullable=True)
-    osm_id = Column(String, nullable=True, unique=True, index=True)  # OpenStreetMap ID
-    osm_type = Column(String, nullable=True)  # node, way, relation
-    shop_type = Column(String, nullable=True)  # supermarket, convenience, etc.
+    osm_id = Column(String, nullable=True, unique=True, index=True)
+    osm_type = Column(String, nullable=True)  # node or way (relation not searched)
+    shop_type = Column(String, nullable=True)  # supermarket, convenience, ...
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
