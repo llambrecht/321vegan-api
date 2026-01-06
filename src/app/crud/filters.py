@@ -29,8 +29,8 @@ OPERATOR_MAPPING = {
     'endswith': operators.endswith_op,
     'iendswith': lambda c, v: c.ilike('%' + v),
     'contains': lambda c, v: c.ilike('%{v}%'.format(v=v)),
-    'lookalike': lambda c,v: func.levenshtein(
-        func.lower(func.trim(c)), 
+    'lookalike': lambda c, v: func.levenshtein(
+        func.lower(func.trim(c)),
         func.lower(func.trim(v))) <= 1,
 
     'year': lambda c, v: extract('year', c) == v,
@@ -55,6 +55,7 @@ OPERATOR_MAPPING = {
     'day_le': lambda c, v: extract('day', c) <= v,
 }
 
+
 def buildQueryFilters(model: Type[ORMModel], query: Query, filter_args: Dict) -> Query:
     """
     Builds query filters from query params.
@@ -69,7 +70,7 @@ def buildQueryFilters(model: Type[ORMModel], query: Query, filter_args: Dict) ->
     try:
         filters_by = {}
         relations = [c.key for c in model.__mapper__.attrs
-                if isinstance(c, RelationshipProperty)]
+                     if isinstance(c, RelationshipProperty)]
         for field, value in filter_args.items():
             if RELATION_SPLITTER in field:
                 # Filters by relationship attributes
@@ -80,34 +81,33 @@ def buildQueryFilters(model: Type[ORMModel], query: Query, filter_args: Dict) ->
                     r_class = aliased(relationship.property.mapper.class_)
                     # handle recursive cross-relationship
                     if RELATION_SPLITTER in rest:
-                        query = buildQueryFilters(r_class, query.join(r_class, relationship), {rest: value})
+                        query = buildQueryFilters(r_class, query.join(
+                            r_class, relationship), {rest: value})
                     if OPERATOR_SPLITTER in rest:
                         r_field, ope = rest.rsplit(OPERATOR_SPLITTER, 1)
                     else:
                         r_field = rest
                         ope = 'exact'
-                    
                     r_attr = getattr(r_class, r_field)
                     if r_attr is None or ope not in OPERATOR_MAPPING:
                         continue
                     operator = OPERATOR_MAPPING[ope]
                     clause = operator(r_attr, value)
-                    # Join aliased relationship and filter on it 
+                    # Join aliased relationship and filter on it
                     query = query.join(r_class, relationship).filter(clause)
             elif OPERATOR_SPLITTER in field:
                 # Filter with custom operator
                 field_name, ope = field.split(OPERATOR_SPLITTER, 1)
                 if hasattr(model, field_name) and ope in OPERATOR_MAPPING:
                     operator = OPERATOR_MAPPING[ope]
-                    m_attr = getattr(model, field_name)    
+                    m_attr = getattr(model, field_name)
                     clause = operator(m_attr, value)
                     # Filter on queried model
                     query = query.filter(clause)
             elif hasattr(model, field):
-                # Simple filter by
-                filters_by[field] = value
-        query = query.filter_by(**filters_by)
+                # Simple filter
+                query = query.filter(getattr(model, field) == value)
         return query
     except Exception as e:
-        print(e)
+        print(f"error in buildQueryFilters : {e}")
         return query
