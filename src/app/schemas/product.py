@@ -20,6 +20,7 @@ class ProductBase(BaseModel):
     biodynamic: Optional[bool] = None
     state: Optional[str] = None
     has_non_vegan_old_receipe: Optional[bool] = None
+    last_modified_by: Optional[int] = None
 
 class ProductCreate(ProductBase):
     user_id: Optional[int] = None

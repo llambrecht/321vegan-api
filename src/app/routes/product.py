@@ -221,7 +221,10 @@ def create_product(
 
     try:        
         # Create product data excluding user_id field
+        # But set last_modified_by to user_id if provided
         product_data_dict = product_create.model_dump(exclude={'user_id'}, exclude_none=True, exclude_unset=True)
+        if user_id:
+            product_data_dict['last_modified_by'] = user_id
         
         from app.schemas.product import ProductBase
         product_base = ProductBase(**product_data_dict)
