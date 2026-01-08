@@ -4,7 +4,7 @@ from fastapi import APIRouter, Body, Depends, HTTPException, status, Query, File
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.routes.dependencies import get_current_active_user, get_pagination_params, get_sort_by_params, RoleChecker
+from app.routes.dependencies import get_current_active_user, get_current_active_user_or_client, get_pagination_params, get_sort_by_params, RoleChecker
 from app.crud import interesting_product_crud, product_category_crud
 from app.database.db import get_db
 from app.log import get_logger
@@ -14,13 +14,16 @@ from app.schemas.interesting_product import InterestingProductCreate, Interestin
 
 log = get_logger(__name__)
 
-router = APIRouter(dependencies=[Depends(get_current_active_user)])
+router = APIRouter()
 
 
 @router.get(
     "/", response_model=List[Optional[InterestingProductOut]], status_code=status.HTTP_200_OK
 )
-def fetch_all_interesting_products(db: Session = Depends(get_db)) -> List[Optional[InterestingProductOut]]:
+def fetch_all_interesting_products(
+    db: Session = Depends(get_db),
+    current_user_or_client = Depends(get_current_active_user_or_client)
+) -> List[Optional[InterestingProductOut]]:
     """
     Fetch all interesting products.
 
@@ -42,7 +45,8 @@ def fetch_paginated_interesting_products(
     db: Session = Depends(get_db),
     pagination_params: Tuple[int, int] = Depends(get_pagination_params),
     orderby_params: Tuple[str, bool] = Depends(get_sort_by_params),
-    filter_params: InterestingProductFilters = Depends()
+    filter_params: InterestingProductFilters = Depends(),
+    current_user_or_client = Depends(get_current_active_user_or_client)
 ) -> Optional[InterestingProductOutPaginated]:
     """
     Fetch many interesting products with pagination and filters.
@@ -82,7 +86,9 @@ def fetch_paginated_interesting_products(
     status_code=status.HTTP_200_OK,
 )
 def fetch_interesting_product_by_ean(
-    ean: str, db: Session = Depends(get_db)
+    ean: str,
+    db: Session = Depends(get_db),
+    current_user_or_client = Depends(get_current_active_user_or_client)
 ) -> InterestingProductOut:
     """
     Fetches an interesting product by its EAN.
@@ -112,7 +118,9 @@ def fetch_interesting_product_by_ean(
     status_code=status.HTTP_200_OK,
 )
 def fetch_interesting_product_by_id(
-    id: int, db: Session = Depends(get_db)
+    id: int,
+    db: Session = Depends(get_db),
+    current_user_or_client = Depends(get_current_active_user_or_client)
 ) -> InterestingProductOut:
     """
     Fetches an interesting product by its ID.
