@@ -9,7 +9,7 @@ from app.crud import product_category_crud
 from app.database.db import get_db
 from app.log import get_logger
 from app.models import ProductCategory, User
-from app.schemas.product_category import ProductCategoryCreate, ProductCategoryOut, ProductCategoryUpdate, ProductCategoryOutPaginated
+from app.schemas.product_category import ProductCategoryCreate, ProductCategoryOut, ProductCategoryUpdate, ProductCategoryOutPaginated, ProductCategoryFilters
 
 log = get_logger(__name__)
 
@@ -41,6 +41,7 @@ def fetch_paginated_product_categories(
     db: Session = Depends(get_db),
     pagination_params: Tuple[int, int] = Depends(get_pagination_params),
     orderby_params: Tuple[str, bool] = Depends(get_sort_by_params),
+    filter_params: ProductCategoryFilters = Depends()
 ) -> Optional[ProductCategoryOutPaginated]:
     """
     Fetch many product categories with pagination.
@@ -56,11 +57,12 @@ def fetch_paginated_product_categories(
     page, size = pagination_params
     sortby, descending = orderby_params
     categories, total = product_category_crud.get_many(
-        db, 
-        skip=page, 
-        limit=size, 
-        order_by=sortby, 
-        descending=descending
+        db,
+        skip=page,
+        limit=size,
+        order_by=sortby,
+        descending=descending,
+        **filter_params.model_dump(exclude_none=True)
     )
     pages = (total + size - 1) // size
     return {
@@ -187,38 +189,33 @@ def create_product_category(
         HTTPException: If a category with the same name already exists.
         HTTPException: If there is an error creating the category.
     """
+
     try:
-        # Check if parent category exists if provided
-        if category_create.parent_category_id:
-            parent = product_category_crud.get_one(db, ProductCategory.id == category_create.parent_category_id)
-            if not parent:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"Parent category with id {category_create.parent_category_id} does not exist",
-                )
-        
-        # Check if category with same name already exists
-        existing = product_category_crud.get_by_name(db, category_create.name)
-        if existing:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Product category with name '{category_create.name}' already exists",
-            )
-        
-        category = product_category_crud.create(db, category_create)
-    except HTTPException:
-        raise
+        category = product_category_crud.create(
+            db, category_create
+        )
     except IntegrityError as e:
         error_message = str(e.orig)
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Data integrity error: {error_message}",
-        ) from e
+        if "unique constraint" in error_message.lower() and "name" in error_message.lower():
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=f"Product category with name {category_create.name} already exists",
+            ) from e
+        elif "foreign key constraint" in error_message.lower() and "parent_category_id" in error_message.lower():
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Product category with id {category_create.parent_category_id} does not exist",
+            ) from e
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Data integrity error: {error_message}",
+            ) from e
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Couldn't create product category. Error: {str(e)}",
-        ) from e 
+        ) from e
     return category
 
 
@@ -256,33 +253,35 @@ def update_product_category(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Product category with id {id} not found",
         )
-    
+
     try:
         # Check if parent category exists if provided
         if category_update.parent_category_id:
-            parent = product_category_crud.get_one(db, ProductCategory.id == category_update.parent_category_id)
+            parent = product_category_crud.get_one(
+                db, ProductCategory.id == category_update.parent_category_id)
             if not parent:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail=f"Parent category with id {category_update.parent_category_id} does not exist",
                 )
-            
+
             # Prevent circular reference
             if category_update.parent_category_id == id:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail="A category cannot be its own parent",
                 )
-        
+
         # Check if new name already exists (if name is being updated)
         if category_update.name and category_update.name != category.name:
-            existing = product_category_crud.get_by_name(db, category_update.name)
+            existing = product_category_crud.get_by_name(
+                db, category_update.name)
             if existing:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail=f"Product category with name '{category_update.name}' already exists",
                 )
-        
+
         category = product_category_crud.update(db, category, category_update)
     except HTTPException:
         raise
@@ -292,11 +291,11 @@ def update_product_category(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Data integrity error: {error_message}",
         ) from e
-    except Exception as e:  
+    except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Couldn't update product category with id {id}. Error: {str(e)}",
-        ) from e  
+        ) from e
     return category
 
 
@@ -324,9 +323,14 @@ def delete_product_category(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Product category with id {id} not found. Cannot delete.",
         )
+    if category.nb_interesting_products > 0:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Product category with name {category.name} currently used by at least one product",
+        )
     try:
         product_category_crud.delete(db, category)
-    except Exception as e:  
+    except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Couldn't delete product category with id {id}. Error: {str(e)}",
