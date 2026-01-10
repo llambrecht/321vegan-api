@@ -16,7 +16,7 @@ from app.services.openstreetmap import osm_service
 
 log = get_logger(__name__)
 
-router = APIRouter(dependencies=[Depends(get_current_active_user)])
+router = APIRouter(dependencies=[Depends(get_current_active_user_or_client)])
 
 
 @router.get(
