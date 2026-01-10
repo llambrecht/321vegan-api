@@ -4,7 +4,7 @@ from fastapi import APIRouter, Body, Depends, HTTPException, status, Query
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.routes.dependencies import get_current_active_user, get_pagination_params, get_sort_by_params, RoleChecker
+from app.routes.dependencies import get_current_active_user, get_current_active_user_or_client, get_pagination_params, get_sort_by_params, RoleChecker
 from app.crud import scan_event_crud
 from app.crud.shop import shop_crud
 from app.database.db import get_db
@@ -137,6 +137,7 @@ def fetch_scan_event_by_id(
     status_code=status.HTTP_201_CREATED,
     response_model_exclude_none=True,
     response_model_exclude_unset=True,
+    dependencies=[Depends(get_current_active_user_or_client)]
 )
 async def create_scan_event(
     event_create: Annotated[
