@@ -9,7 +9,7 @@ from app.crud import scan_event_crud
 from app.crud.shop import shop_crud
 from app.database.db import get_db
 from app.log import get_logger
-from app.models import ScanEvent, User
+from app.models import ScanEvent, User, ApiClient
 from app.schemas.scan_event import ScanEventCreate, ScanEventOut, ScanEventUpdate, ScanEventOutPaginated, ScanEventFilters
 from app.schemas.shop import ShopCreate
 from app.services.openstreetmap import osm_service
@@ -137,7 +137,6 @@ def fetch_scan_event_by_id(
     status_code=status.HTTP_201_CREATED,
     response_model_exclude_none=True,
     response_model_exclude_unset=True,
-    dependencies=[Depends(get_current_active_user_or_client)]
 )
 async def create_scan_event(
     event_create: Annotated[
@@ -156,7 +155,7 @@ async def create_scan_event(
         ),
     ],
     db: Session = Depends(get_db),
-    active_user: User = Depends(get_current_active_user),
+    current_user_or_client: User | ApiClient = Depends(get_current_active_user_or_client),
 ):
     """
     Create a scan event.
@@ -172,7 +171,7 @@ async def create_scan_event(
     Parameters:
         event_create (ScanEventCreate): The scan event data to be created.
         db (Session): The database session.
-        active_user (User): The current active user.
+        current_user_or_client (User | ApiClient): The current active user or API client.
 
     Returns:
         ScanEventOut: The created scan event.
