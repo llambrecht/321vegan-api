@@ -42,8 +42,8 @@ class OpenStreetMapService:
                 if not elements:
                     return None
                 
-                # Return the last element (closest)
-                shop = elements[-1]
+                # Return the first element
+                shop = elements[0]
                 
                 parsed_shop = OpenStreetMapService._parse_osm_shop(shop)
                 
