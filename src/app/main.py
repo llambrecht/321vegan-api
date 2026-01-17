@@ -5,12 +5,13 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from app.routes import (
-    auth_router, 
-    account_router, 
-    user_router, 
-    brand_router, 
-    product_router, 
-    cosmetic_router, 
+    auth_router,
+    account_router,
+    user_router,
+    brand_router,
+    product_router,
+    cosmetic_router,
+    household_cleaner_router,
     apiclient_router,
     error_report_router,
     export_router,
@@ -44,6 +45,7 @@ app.add_middleware(
 
 log = get_logger(__name__)
 
+
 @app.middleware("http")
 async def flatten_query_string_lists(request: Request, call_next):
     """
@@ -53,8 +55,10 @@ async def flatten_query_string_lists(request: Request, call_next):
     flattened = []
     for key, value in request.query_params.multi_items():
         flattened.extend((key, entry) for entry in value.split(','))
-    request.scope["query_string"] = urlencode(flattened, doseq=True).encode("utf-8")
+    request.scope["query_string"] = urlencode(
+        flattened, doseq=True).encode("utf-8")
     return await call_next(request)
+
 
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
@@ -71,15 +75,22 @@ app.include_router(user_router, prefix="/users", tags=["user"])
 app.include_router(brand_router, prefix="/brands", tags=["brand"])
 app.include_router(product_router, prefix="/products", tags=["product"])
 app.include_router(cosmetic_router, prefix="/cosmetics", tags=["cosmetic"])
+app.include_router(household_cleaner_router,
+                   prefix="/household-cleaners", tags=["household_cleaners"])
 app.include_router(apiclient_router, prefix="/apiclients", tags=["apiclient"])
-app.include_router(error_report_router, prefix="/error-reports", tags=["error_report"])
+app.include_router(error_report_router,
+                   prefix="/error-reports", tags=["error_report"])
 app.include_router(export_router, prefix="/export", tags=["export"])
 app.include_router(checking_router, prefix="/checkings", tags=["checking"])
 app.include_router(scoring_router, prefix="/scoring", tags=["scoring"])
-app.include_router(healthcheck_router, prefix="/healthcheck", tags=["healthcheck"])
-app.include_router(product_category_router, prefix="/product-categories", tags=["product_category"])
-app.include_router(interesting_product_router, prefix="/interesting-products", tags=["interesting_product"])
-app.include_router(scan_event_router, prefix="/scan-events", tags=["scan_event"])
+app.include_router(healthcheck_router,
+                   prefix="/healthcheck", tags=["healthcheck"])
+app.include_router(product_category_router,
+                   prefix="/product-categories", tags=["product_category"])
+app.include_router(interesting_product_router,
+                   prefix="/interesting-products", tags=["interesting_product"])
+app.include_router(scan_event_router, prefix="/scan-events",
+                   tags=["scan_event"])
 app.include_router(shop_router, prefix="/shops", tags=["shop"])
 
 # Serve static files
