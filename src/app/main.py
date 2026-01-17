@@ -11,6 +11,7 @@ from app.routes import (
     brand_router,
     product_router,
     cosmetic_router,
+    additive_router,
     household_cleaner_router,
     apiclient_router,
     error_report_router,
@@ -75,6 +76,7 @@ app.include_router(user_router, prefix="/users", tags=["user"])
 app.include_router(brand_router, prefix="/brands", tags=["brand"])
 app.include_router(product_router, prefix="/products", tags=["product"])
 app.include_router(cosmetic_router, prefix="/cosmetics", tags=["cosmetic"])
+app.include_router(additive_router, prefix="/additives", tags=["additive"])
 app.include_router(household_cleaner_router,
                    prefix="/household-cleaners", tags=["household_cleaners"])
 app.include_router(apiclient_router, prefix="/apiclients", tags=["apiclient"])
