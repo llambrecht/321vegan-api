@@ -251,7 +251,7 @@ def update_scan_event(
     id: int,
     event_update: ScanEventUpdate,
     db: Session = Depends(get_db),
-    active_user: User = Depends(get_current_active_user),
+    current_user_or_client: User | ApiClient = Depends(get_current_active_user_or_client),
 ):
     """
     Update a scan event by its ID.
@@ -261,7 +261,7 @@ def update_scan_event(
         id (int): The ID of the scan event to be updated.
         event_update (ScanEventUpdate): The updated scan event data.
         db (Session): The database session.
-        active_user (User): The current active user.
+        current_user_or_client (User | ApiClient): The current active user or API client.
 
     Returns:
         ScanEventOut: The updated scan event.
