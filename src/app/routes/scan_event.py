@@ -246,7 +246,6 @@ async def create_scan_event(
     "/{id}",
     response_model=ScanEventOut,
     status_code=status.HTTP_200_OK,
-    dependencies=[Depends(RoleChecker(["admin"]))]
 )
 def update_scan_event(
     id: int,
