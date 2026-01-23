@@ -3,17 +3,20 @@ from fastapi import Query
 from typing import List, Optional
 from datetime import datetime, timezone
 
+
 class Brand(BaseModel):
     id: int
     name: str
     email: Optional[EmailStr] = None
     root_email: Optional[EmailStr] = None
     boycott: Optional[bool] = False
-    
+    background: Optional[str] = None
+
     @field_validator('boycott', mode='before')
     @classmethod
     def set_boycott_default(cls, v):
         return False if v is None else v
+
 
 class BrandBase(BaseModel):
     name: Optional[str] = None
@@ -21,6 +24,7 @@ class BrandBase(BaseModel):
     parent_id: Optional[int] = None
     logo_path: Optional[str] = None
     boycott: Optional[bool] = False
+    background: Optional[str] = None
 
 
 class BrandCreate(BrandBase):
@@ -48,7 +52,8 @@ class BrandOut(BaseModel):
     boycott: Optional[bool] = False
     parent: Optional[Brand] = None
     score: Optional[float] = None
-    
+    background: Optional[str] = None
+
     @field_validator('boycott', mode='before')
     @classmethod
     def set_boycott_default(cls, v):
@@ -80,6 +85,7 @@ class BrandFilters(BaseModel):
     parent___name__contains: Optional[str] = None
     parent___name__lookalike: Optional[str] = None
     boycott: Optional[bool] = None
+
 
 class BrandLookalikeFilter(BaseModel):
     name: str = Field(Query(..., min_length=1))
