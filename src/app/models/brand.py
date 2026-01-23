@@ -1,10 +1,11 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Boolean, select, func, case
+from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Boolean, Text, select, func, case
 from sqlalchemy.orm import relationship, object_session
 from sqlalchemy.ext.hybrid import hybrid_property
 from datetime import datetime
 from typing import List, Optional, Dict, Any
 from app.database.base_class import Base
 from app.models.scoring import BrandCriterionScore, Criterion
+
 
 class Brand(Base):
     __tablename__ = "brands"
@@ -16,6 +17,7 @@ class Brand(Base):
     email = Column(String, nullable=True)
     logo_path = Column(String, nullable=True)
     boycott = Column(Boolean, default=False, nullable=True)
+    background = Column(Text)
     parent_id = Column(Integer, ForeignKey("brands.id"), nullable=True)
     children = relationship("Brand", back_populates="parent")
     parent = relationship("Brand", back_populates="children", remote_side=[id])
@@ -32,7 +34,7 @@ class Brand(Base):
         if self.parent:
             return [self.name] + self.parent.parent_name_tree
         return [self.name]
-        
+
     @property
     def root_brand(self):
         """Get the root brand in the hierarchy."""
@@ -65,10 +67,11 @@ class Brand(Base):
         if len(self.criterion_scores) > 0:
             max_total_point = object_session(self).query(Criterion).count() * 5
             if max_total_point > 0:
-                total_score = sum(score.score for score in self.criterion_scores)
+                total_score = sum(
+                    score.score for score in self.criterion_scores)
                 avg_score = (total_score * 100) / max_total_point
                 return round(avg_score, 2)
-        
+
         # If no scores for this brand but there is a parent/ancestor with a score, use that
         if self.parent:
             root = self.root_brand
@@ -76,7 +79,7 @@ class Brand(Base):
                 root_score = root.score
                 if root_score is not None:
                     return root_score
-        
+
         # No scores found in the hierarchy
         return None
 
@@ -90,5 +93,5 @@ class Brand(Base):
             .where(BrandCriterionScore.brand_id == cls.id).scalar_subquery()
         return case(
             (max_total_point == 0, None),
-            else_ = func.round((total_score * 100) / max_total_point, 2)
+            else_=func.round((total_score * 100) / max_total_point, 2)
         )
