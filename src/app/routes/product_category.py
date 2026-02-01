@@ -166,7 +166,6 @@ def create_product_category(
                 {
                     "name": "Beverages",
                     "parent_category_id": None,
-                    "image": "https://example.com/beverages.jpg"
                 }
             ]
         ),
@@ -345,12 +344,12 @@ def upload_product_category_image(
     file: UploadFile = File(..., description="Image du produit (JPG, PNG, WebP max 5MB)")
 ):
     """
-    Upload an image for an interesting product.
+    Upload an image for a product category.
 
-    - **product_id**: ID of the interesting product
+    - **category_id**: ID of the product category
     - **file**: Image file (JPG, PNG, WebP, max 5MB)
 
-    The file will be saved in `/uploads/interesting_products/` and the path will be updated in the database.
+    The file will be saved in `/uploads/product_categories/` and the path will be updated in the database.
     """
     from app.services.file_service import file_service
 
