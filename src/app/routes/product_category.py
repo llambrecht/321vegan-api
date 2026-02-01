@@ -4,7 +4,7 @@ from fastapi import APIRouter, Body, Depends, HTTPException, UploadFile, status,
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.routes.dependencies import get_current_active_user, get_pagination_params, get_sort_by_params, RoleChecker
+from app.routes.dependencies import get_current_active_user, get_current_active_user_or_client, get_pagination_params, get_sort_by_params, RoleChecker
 from app.crud import product_category_crud
 from app.database.db import get_db
 from app.log import get_logger
@@ -14,11 +14,13 @@ from app.schemas.product_category import ProductCategoryCreate, ProductCategoryO
 
 log = get_logger(__name__)
 
-router = APIRouter(dependencies=[Depends(get_current_active_user)])
+router = APIRouter()
 
 
 @router.get(
-    "/", response_model=List[Optional[ProductCategoryOut]], status_code=status.HTTP_200_OK
+    "/", response_model=List[Optional[ProductCategoryOut]], status_code=status.HTTP_200_OK,
+        current_user_or_client = Depends(get_current_active_user_or_client)
+
 )
 def fetch_all_product_categories(db: Session = Depends(get_db)) -> List[Optional[ProductCategoryOut]]:
     """
@@ -36,7 +38,8 @@ def fetch_all_product_categories(db: Session = Depends(get_db)) -> List[Optional
 
 
 @router.get(
-    "/search", response_model=Optional[ProductCategoryOutPaginated], status_code=status.HTTP_200_OK
+    "/search", response_model=Optional[ProductCategoryOutPaginated], status_code=status.HTTP_200_OK,
+        current_user_or_client = Depends(get_current_active_user_or_client)
 )
 def fetch_paginated_product_categories(
     db: Session = Depends(get_db),
@@ -76,7 +79,8 @@ def fetch_paginated_product_categories(
 
 
 @router.get(
-    "/root", response_model=List[Optional[ProductCategoryOut]], status_code=status.HTTP_200_OK
+    "/root", response_model=List[Optional[ProductCategoryOut]], status_code=status.HTTP_200_OK,
+    current_user_or_client = Depends(get_current_active_user_or_client)
 )
 def fetch_root_categories(db: Session = Depends(get_db)) -> List[Optional[ProductCategoryOut]]:
     """
@@ -125,6 +129,7 @@ def fetch_product_category_by_id(
     "/{id}/children",
     response_model=List[Optional[ProductCategoryOut]],
     status_code=status.HTTP_200_OK,
+    current_user_or_client = Depends(get_current_active_user_or_client)
 )
 def fetch_category_children(
     id: int, db: Session = Depends(get_db)
