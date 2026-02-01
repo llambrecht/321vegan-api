@@ -1,6 +1,6 @@
 from typing import Annotated, List, Optional, Tuple
 
-from fastapi import APIRouter, Body, Depends, HTTPException, status
+from fastapi import APIRouter, Body, Depends, HTTPException, UploadFile, status, File
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -8,7 +8,8 @@ from app.routes.dependencies import get_current_active_user, get_pagination_para
 from app.crud import product_category_crud
 from app.database.db import get_db
 from app.log import get_logger
-from app.models import ProductCategory, User
+from app.models import ProductCategory, User, product
+from app.schemas.interesting_product import InterestingProductUpdate
 from app.schemas.product_category import ProductCategoryCreate, ProductCategoryOut, ProductCategoryUpdate, ProductCategoryOutPaginated, ProductCategoryFilters
 
 log = get_logger(__name__)
@@ -165,7 +166,7 @@ def create_product_category(
             examples=[
                 {
                     "name": "Beverages",
-                    "parent_category_id": None
+                    "parent_category_id": None,
                 }
             ]
         ),
@@ -334,4 +335,83 @@ def delete_product_category(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Couldn't delete product category with id {id}. Error: {str(e)}",
+        ) from e
+
+@router.post("/{category_id}/upload-image", response_model=ProductCategoryOut, status_code=status.HTTP_200_OK, dependencies=[Depends(RoleChecker(["contributor", "admin"]))])
+def upload_product_category_image(
+    *,
+    db: Session = Depends(get_db),
+    category_id: int,
+    file: UploadFile = File(..., description="Category image (JPG, PNG, WebP max 5MB)")
+):
+    """
+    Upload an image for a product category.
+
+    - **category_id**: ID of the product category
+    - **file**: Image file (JPG, PNG, WebP, max 5MB)
+
+    The file will be saved in `/uploads/product_categories/` and the path will be updated in the database.
+    """
+    from app.services.file_service import file_service
+
+    # Check if the product exists
+    category = product_category_crud.get_one(db, ProductCategory.id == category_id)
+    if not category:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Product category with id {category_id} not found"
+        )
+    
+    try:
+        # Save the file and get the path
+        image_path = file_service.save_product_category_image(category_id, file)
+
+        # Update the product with the new image path
+        category_update = ProductCategoryUpdate(image=image_path)
+        updated_category = product_category_crud.update(db, category, category_update)
+        
+        return updated_category
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error uploading image: {str(e)}"
+        ) from e
+    
+@router.delete("/{category_id}/image", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(RoleChecker(["contributor", "admin"]))])
+def delete_product_category_image(
+    *,
+    db: Session = Depends(get_db),
+    category_id: int
+):
+    """
+    Delete the image of an interesting product.
+
+    - **category_id**: ID of the interesting product
+    """
+    from app.services.file_service import file_service
+
+    # Check if the product exists
+    category = product_category_crud.get_one(db, ProductCategory.id == category_id)
+    if not category:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Product category with id {category_id} not found"
+        )
+    
+    try:
+        # Delete the physical file if it exists
+        if category.image:
+            file_service.delete_product_category_image(category.image)
+
+        # Update the product to remove the image path
+        category_update = ProductCategoryUpdate(image=None)
+        product_category_crud.update(db, category, category_update)
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error deleting image: {str(e)}"
         ) from e

@@ -13,6 +13,8 @@ class ProductCategory(Base):
     name = Column(String, nullable=False, unique=True, index=True)
     parent_category_id = Column(Integer, ForeignKey(
         "product_categories.id"), nullable=True)
+    image = Column(String, nullable=True)
+
 
     # Self-referential relationship for hierarchical categories
     parent = relationship(

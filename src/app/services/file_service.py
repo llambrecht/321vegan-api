@@ -10,9 +10,11 @@ class FileService:
         self.upload_dir = Path(upload_dir)
         self.brands_dir = self.upload_dir / "brands"
         self.interesting_products_dir = self.upload_dir / "interesting_products"
+        self.product_categories_dir = self.upload_dir / "product_categories"
         
         self.brands_dir.mkdir(parents=True, exist_ok=True)
         self.interesting_products_dir.mkdir(parents=True, exist_ok=True)
+        self.product_categories_dir.mkdir(parents=True, exist_ok=True)
     
     def validate_image(self, file: UploadFile) -> bool:
         """Check if the uploaded file is a valid image."""
@@ -162,6 +164,78 @@ class FileService:
     
     def delete_interesting_product_image(self, image_path: str) -> bool:
         """Delete an interesting product image by path."""
+        try:
+            full_path = Path(image_path)
+            if full_path.exists() and full_path.is_relative_to(self.upload_dir):
+                full_path.unlink()
+                return True
+        except Exception:
+            pass
+        return False
+    
+    def save_product_category_image(self, category_id: int, file: UploadFile) -> str:
+        """
+        Save the product category image and return the relative path.
+        
+        Args:
+            category_id: Product category ID
+            file: Uploaded file
+            
+        Returns:
+            str: Relative path of the saved file
+            
+        Raises:
+            HTTPException: If the file is not valid
+        """
+        if not self.validate_image(file):
+            raise HTTPException(
+                status_code=400,
+                detail="Unsupported file format. Use JPG, PNG or WebP."
+            )
+        
+        file.file.seek(0, 2)
+        file_size = file.file.tell()
+        file.file.seek(0)
+        
+        if file_size > 5 * 1024 * 1024:
+            raise HTTPException(
+                status_code=400,
+                detail="File is too large. Maximum size: 5MB."
+            )
+        
+        file_extension = Path(file.filename or "").suffix.lower()
+        filename = f"category_{category_id}_{uuid.uuid4().hex}{file_extension}"
+        file_path = self.product_categories_dir / filename
+        
+        try:
+            self.delete_old_product_category_image(category_id)
+            
+            with open(file_path, "wb") as buffer:
+                content = file.file.read()
+                buffer.write(content)
+                        
+            return f"uploads/product_categories/{filename}"
+            
+        except Exception as e:
+            if file_path.exists():
+                file_path.unlink()
+            raise HTTPException(
+                status_code=500,
+                detail=f"Error saving file: {str(e)}"
+            )
+    
+    def delete_old_product_category_image(self, category_id: int) -> bool:
+        """Delete the old image of a product category."""
+        try:
+            pattern = f"category_{category_id}_*"
+            for file_path in self.product_categories_dir.glob(pattern):
+                file_path.unlink()
+            return True
+        except Exception:
+            return False
+    
+    def delete_product_category_image(self, image_path: str) -> bool:
+        """Delete a product category image by path."""
         try:
             full_path = Path(image_path)
             if full_path.exists() and full_path.is_relative_to(self.upload_dir):
