@@ -8,12 +8,13 @@ class ProductCategory(BaseModel):
     id: int
     name: str
     category_tree: list[str] = []
+    image: Optional[str] = None
 
 
 class ProductCategoryBase(BaseModel):
     name: str = Field(..., min_length=1, max_length=255)
     parent_category_id: Optional[int] = None
-
+    image: Optional[str] = None
 
 class ProductCategoryCreate(ProductCategoryBase):
     pass
@@ -22,7 +23,7 @@ class ProductCategoryCreate(ProductCategoryBase):
 class ProductCategoryUpdate(BaseModel):
     name: Optional[str] = Field(None, min_length=1, max_length=255)
     parent_category_id: Optional[int] = None
-
+    image: Optional[str] = None
 
 class ProductCategoryInDB(ProductCategoryBase):
     id: int
@@ -34,6 +35,7 @@ class ProductCategoryOut(ProductCategoryInDB):
     parent: Optional[ProductCategory] = None
     parent_category_name: Optional[str] = None
     category_tree: list[str] = []
+    image: Optional[str] = None
 
     class Config:
         from_attributes = True
