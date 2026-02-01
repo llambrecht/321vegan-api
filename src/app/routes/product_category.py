@@ -8,7 +8,8 @@ from app.routes.dependencies import get_current_active_user, get_pagination_para
 from app.crud import product_category_crud
 from app.database.db import get_db
 from app.log import get_logger
-from app.models import ProductCategory, User
+from app.models import ProductCategory, User, product
+from app.schemas.interesting_product import InterestingProductUpdate
 from app.schemas.product_category import ProductCategoryCreate, ProductCategoryOut, ProductCategoryUpdate, ProductCategoryOutPaginated, ProductCategoryFilters
 
 log = get_logger(__name__)
@@ -377,4 +378,40 @@ def upload_product_category_image(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error uploading image: {str(e)}"
+        ) from e
+    
+@router.delete("/{category_id}/image", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(RoleChecker(["contributor", "admin"]))])
+def delete_product_category_image(
+    *,
+    db: Session = Depends(get_db),
+    category_id: int
+):
+    """
+    Delete the image of an interesting product.
+
+    - **category_id**: ID of the interesting product
+    """
+    from app.services.file_service import file_service
+
+    # Check if the product exists
+    category = product_category_crud.get_one(db, ProductCategory.id == category_id)
+    if not category:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Product category with id {category_id} not found"
+        )
+    
+    try:
+        # Delete the physical file if it exists
+        if category.image:
+            file_service.delete_product_category_image(category.image)
+
+        # Update the product to remove the image path
+        category_update = ProductCategoryUpdate(image=None)
+        product_category_crud.update(db, category, category_update)
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error deleting image: {str(e)}"
         ) from e
