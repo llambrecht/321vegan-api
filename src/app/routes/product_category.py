@@ -341,7 +341,7 @@ def upload_product_category_image(
     *,
     db: Session = Depends(get_db),
     category_id: int,
-    file: UploadFile = File(..., description="Image du produit (JPG, PNG, WebP max 5MB)")
+    file: UploadFile = File(..., description="Category image (JPG, PNG, WebP max 5MB)")
 ):
     """
     Upload an image for a product category.
