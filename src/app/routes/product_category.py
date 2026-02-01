@@ -18,9 +18,10 @@ router = APIRouter()
 
 
 @router.get(
-    "/", response_model=List[Optional[ProductCategoryOut]], status_code=status.HTTP_200_OK,
-        current_user_or_client = Depends(get_current_active_user_or_client)
-
+    "/", 
+    response_model=List[Optional[ProductCategoryOut]], 
+    status_code=status.HTTP_200_OK,
+    dependencies=[Depends(get_current_active_user_or_client)]
 )
 def fetch_all_product_categories(db: Session = Depends(get_db)) -> List[Optional[ProductCategoryOut]]:
     """
@@ -38,8 +39,10 @@ def fetch_all_product_categories(db: Session = Depends(get_db)) -> List[Optional
 
 
 @router.get(
-    "/search", response_model=Optional[ProductCategoryOutPaginated], status_code=status.HTTP_200_OK,
-        current_user_or_client = Depends(get_current_active_user_or_client)
+    "/search", 
+    response_model=Optional[ProductCategoryOutPaginated], 
+    status_code=status.HTTP_200_OK,
+    dependencies=[Depends(get_current_active_user_or_client)]
 )
 def fetch_paginated_product_categories(
     db: Session = Depends(get_db),
@@ -79,8 +82,10 @@ def fetch_paginated_product_categories(
 
 
 @router.get(
-    "/root", response_model=List[Optional[ProductCategoryOut]], status_code=status.HTTP_200_OK,
-    current_user_or_client = Depends(get_current_active_user_or_client)
+    "/root", 
+    response_model=List[Optional[ProductCategoryOut]], 
+    status_code=status.HTTP_200_OK,
+    dependencies=[Depends(get_current_active_user_or_client)]
 )
 def fetch_root_categories(db: Session = Depends(get_db)) -> List[Optional[ProductCategoryOut]]:
     """
@@ -129,7 +134,7 @@ def fetch_product_category_by_id(
     "/{id}/children",
     response_model=List[Optional[ProductCategoryOut]],
     status_code=status.HTTP_200_OK,
-    current_user_or_client = Depends(get_current_active_user_or_client)
+    dependencies=[Depends(get_current_active_user_or_client)]
 )
 def fetch_category_children(
     id: int, db: Session = Depends(get_db)
