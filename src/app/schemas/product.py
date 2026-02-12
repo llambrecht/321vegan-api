@@ -52,6 +52,7 @@ class ProductOut(BaseModel):
     has_non_vegan_old_receipe: Optional[bool] = None
     last_requested_on: Optional[datetime] = None
     last_requested_by: Optional[str] = None
+    photo: Optional[str] = None
 
     class Config:
         from_attributes = True

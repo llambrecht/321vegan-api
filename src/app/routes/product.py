@@ -1,6 +1,6 @@
 from typing import Annotated, List, Optional, Tuple
 
-from fastapi import APIRouter, Body, Depends, HTTPException, status
+from fastapi import APIRouter, Body, Depends, File, Form, HTTPException, UploadFile, status
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -13,6 +13,7 @@ from app.models import Product, User
 from app.models.product import ProductState
 
 from app.schemas.product import ProductCreate, ProductOut, ProductUpdate, ProductOutPaginated, ProductOutCount, ProductFilters
+from app.services.file_service import file_service
 
 log = get_logger(__name__)
 
@@ -175,73 +176,60 @@ def fetch_product_by_ean(ean: str, db: Session = Depends(get_db)):
     dependencies=[Depends(get_current_active_user_or_client)]
 )
 def create_product(
-    product_create: Annotated[
-        ProductCreate,
-        Body(
-            examples=[
-                {
-                    "ean": "1234567890",
-                    "name": "Product name",
-                    "description": "Long text description",
-                    "problem_description": "Long text problem description",
-                    "brand_id": 1,
-                    "status": 'STATUS',
-                    "biodynamic": False,
-                    "state": 'STATE',
-                    "has_non_vegan_old_receipe": True,
-                    "user_id": 1
-                }
-            ]
-        ),
-    ],
+    ean: str = Form(...),
+    name: Optional[str] = Form(None),
+    brand_id: Optional[int] = Form(None),
+    user_id: Optional[int] = Form(None),
+    photo: Optional[UploadFile] = File(None),
     db: Session = Depends(get_db),
 ):
     """
     Create a product.
 
     Parameters:
-        product_create (ProductCreate): The product data to be created.
-        db (Session, optional): The database session.
-            Defaults to Depends(get_db).
+        ean (str): The EAN of the product.
+        name (Optional[str]): The name of the product.
+        brand_id (Optional[int]): The brand ID of the product.
+        user_id (Optional[int]): The user ID of the user creating the product.
+        photo (Optional[UploadFile]): The photo of the product.
+        db (Session): The database session.
 
     Returns:
         ProductOut: The created product.
-
-    Raises:
-        HTTPException: If a product with same ean provided exists.
-        HTTPException: If a brand provided does not exists.
-        HTTPException: If there is an error creating
-            the product in the database.
     """
-
-    # If user_id was provided in the request, increment their nb_products_sent counter
-    user_id = product_create.user_id
     if user_id:
         user_crud.increment_products_sent(db, user_id)
 
-    try:        
-        # Create product data excluding user_id field
-        # But set last_modified_by to user_id if provided
-        product_data_dict = product_create.model_dump(exclude={'user_id'}, exclude_none=True, exclude_unset=True)
+    try:
+        product_data_dict = {"ean": ean}
+        if name:
+            product_data_dict["name"] = name
+        if brand_id:
+            product_data_dict["brand_id"] = brand_id
         if user_id:
-            product_data_dict['last_modified_by'] = user_id
-        
+            product_data_dict["last_modified_by"] = user_id
+
         from app.schemas.product import ProductBase
         product_base = ProductBase(**product_data_dict)
         product = product_crud.create(db, product_base)
-        
-            
+
+        if photo:
+            photo_path = file_service.save_product_image(product.id, photo)
+            product.photo = photo_path
+            db.commit()
+            db.refresh(product)
+
     except IntegrityError as e:
         error_message = str(e.orig)
         if "unique constraint" in error_message.lower() and "ean" in error_message.lower():
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
-                detail=f"Product with EAN {product_create.ean} already exists",
+                detail=f"Product with EAN {ean} already exists",
             ) from e
         elif "foreign key constraint" in error_message.lower() and "brand_id" in error_message.lower():
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Brand with id {product_create.brand_id} does not exist",
+                detail=f"Brand with id {brand_id} does not exist",
             ) from e
         else:
             raise HTTPException(
@@ -252,86 +240,7 @@ def create_product(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Couldn't create product. Error: {str(e)}",
-        ) from e 
-    return product
-
-
-@router.put(
-    "/{id}",
-    response_model=ProductOut,
-    status_code=status.HTTP_200_OK,
-    dependencies=[Depends(RoleChecker(["contributor", "admin"]))]
-)
-def update_product(
-    id: int,
-    product_update: ProductUpdate,
-    db: Session = Depends(get_db),
-    active_user: User = Depends(get_current_active_user),
-):
-    """
-    Update a product by its ID.
-
-    Parameters:
-        id (int): The ID of the product to be updated.
-        product_update (ProductUpdate): The updated product data.
-        db (Session, optional): The database session.
-            Defaults to Depends(get_db).
-
-    Returns:
-        ProductOut: The updated product.
-
-    Raises:
-        HTTPException: If the product does not exist or
-            the user does not have enough permissions.
-        HTTPException: If there is an error updating
-            the product in the database.
-    """
-    product = product_crud.get_one(db, Product.id == id)
-    if product is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Product with id {id} not found",
-        )
-
-    try:
-        if active_user.is_contributor() and product.state == ProductState.PUBLISHED:
-            dict_product_update = product_update.model_dump()
-            dict_product_update['state'] = ProductState.WAITING_PUBLISH
-            product_update = ProductUpdate(
-                **dict_product_update,
-            )
-        product = product_crud.update(db, product, product_update)
-        
-        # Set last_modified_by to current user
-        product.last_modified_by = active_user.id
-        
-        # Increment user's nb_products_modified counter
-        active_user.nb_products_modified = (active_user.nb_products_modified or 0) + 1
-        db.commit()
-        db.refresh(active_user)
-        db.refresh(product)
-    except IntegrityError as e:
-        error_message = str(e.orig)
-        if "unique constraint" in error_message.lower() and "ean" in error_message.lower():
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail=f"Product with EAN {product_update.ean} already exists",
-            ) from e
-        elif "foreign key constraint" in error_message.lower() and "brand_id" in error_message.lower():
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Brand with id {product_update.brand_id} does not exist",
-            ) from e
-        else:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Data integrity error: {error_message}",
-            ) from e
-    except Exception as e:  
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Couldn't update product with id {id}. Error: {str(e)}",
-        ) from e  
+        ) from e
     return product
 
 
