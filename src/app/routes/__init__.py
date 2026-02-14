@@ -17,6 +17,7 @@ from app.routes.interesting_product import router as interesting_product_router
 from app.routes.scan_event import router as scan_event_router
 from app.routes.shop import router as shop_router
 from app.routes.partner import router as partner_router
+from app.routes.partner_category import router as partner_category_router
 
 
 __all__ = [
@@ -39,4 +40,5 @@ __all__ = [
     "scan_event_router",
     "shop_router",
     "partner_router",
+    "partner_category_router",
 ]

@@ -1,7 +1,10 @@
 from pydantic import BaseModel, Field, field_validator, HttpUrl
 from fastapi import Query
-from typing import List, Optional
+from typing import List, Optional, TYPE_CHECKING
 from datetime import datetime, timezone
+
+if TYPE_CHECKING:
+    from app.schemas.partner_category import PartnerCategoryOut
 
 
 class PartnerBase(BaseModel):
@@ -10,9 +13,11 @@ class PartnerBase(BaseModel):
     logo_path: Optional[str] = None
     description: Optional[str] = None
     discount_text: Optional[str] = None
+    discount_code: Optional[str] = None
     is_affiliate: Optional[bool] = False
     show_code_in_website: Optional[bool] = False
     is_active: Optional[bool] = True
+    category_id: Optional[int] = None
 
 
 class PartnerCreate(PartnerBase):
@@ -49,9 +54,12 @@ class PartnerOut(BaseModel):
     logo_path: Optional[str] = None
     description: Optional[str] = None
     discount_text: Optional[str] = None
+    discount_code: Optional[str] = None
     is_affiliate: bool = False
     show_code_in_website: bool = False
     is_active: bool = True
+    category_id: Optional[int] = None
+    category: Optional['PartnerCategoryOut'] = None
 
     @field_validator('is_affiliate', 'show_code_in_website', mode='before')
     @classmethod
@@ -85,3 +93,4 @@ class PartnerFilters(BaseModel):
     is_affiliate: Optional[bool] = None
     show_code_in_website: Optional[bool] = None
     is_active: Optional[bool] = None
+    category_id: Optional[int] = None

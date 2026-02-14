@@ -13,3 +13,4 @@ from app.models.shop import Shop
 from app.models.household_cleaner import HouseholdCleaner
 from app.models.additive import Additive
 from app.models.partner import Partner
+from app.models.partner_category import PartnerCategory

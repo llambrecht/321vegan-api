@@ -125,8 +125,10 @@ def create_partner(
                     "url": "https://partner.com",
                     "description": "Partner description",
                     "discount_text": "10% off with code VEGAN10",
+                    "discount_code": "VEGAN10",
                     "is_affiliate": True,
-                    "show_code_in_website": True
+                    "show_code_in_website": True,
+                    "category_id": 1
                 }
             ]
         ),
