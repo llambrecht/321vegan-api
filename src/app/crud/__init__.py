@@ -9,6 +9,7 @@ from app.crud.checking import checking_crud
 from app.crud.product_category import product_category_crud
 from app.crud.interesting_product import interesting_product_crud
 from app.crud.scan_event import scan_event_crud
+from app.crud.partner import partner_crud
 from app.crud import scoring
 
 __all__ = [
@@ -23,5 +24,6 @@ __all__ = [
     "product_category_crud",
     "interesting_product_crud",
     "scan_event_crud",
+    "partner_crud",
     "scoring",
 ]
