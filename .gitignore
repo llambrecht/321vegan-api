@@ -9,6 +9,7 @@ db_backups/
 uploads/brands/
 uploads/interesting_products/
 uploads/product_categories/
+uploads/partners/
 
 # macOS
 .DS_Store
