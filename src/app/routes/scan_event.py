@@ -1,3 +1,4 @@
+import json
 from typing import Annotated, List, Optional, Tuple
 
 from fastapi import APIRouter, Body, Depends, HTTPException, status, Query
@@ -201,6 +202,9 @@ async def create_scan_event(
             )
             
             if osm_shop_data:
+                # Store the OSM API response in lookup_api_response field
+                event_create.lookup_api_response = json.dumps(osm_shop_data)
+                
                 # Verify if shop with same OSM ID already exists
                 # As we might not have found it but still could exist
                 existing_osm_shop = shop_crud.get_by_osm_id(db, osm_shop_data["osm_id"])
