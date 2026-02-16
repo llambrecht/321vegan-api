@@ -106,6 +106,7 @@ def fetch_additive_by_id(
     status_code=status.HTTP_201_CREATED,
     response_model_exclude_none=True,
     response_model_exclude_unset=True,
+    dependencies=[Depends(RoleChecker(["contributor", "admin"]))]
 )
 def create_additive(
     additive_create: Annotated[
@@ -213,7 +214,7 @@ def delete_additive(
     db: Session = Depends(get_db)
 ):
     """
-    Deletes a additive by its ID.
+    Deletes an additive by its ID.
 
     Parameters:
         id (int): The ID of the additive to delete.

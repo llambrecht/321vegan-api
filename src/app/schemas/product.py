@@ -5,10 +5,12 @@ from app.schemas.brand import Brand
 from app.schemas.checking import CheckingOutForProduct
 from datetime import datetime, timezone
 
+
 class Product(BaseModel):
     id: int
     ean: str
     name: Optional[str] = None
+
 
 class ProductBase(BaseModel):
     ean: str = Field(..., min_length=1)
@@ -22,11 +24,14 @@ class ProductBase(BaseModel):
     has_non_vegan_old_receipe: Optional[bool] = None
     last_modified_by: Optional[int] = None
 
+
 class ProductCreate(ProductBase):
     user_id: Optional[int] = None
 
+
 class ProductUpdate(ProductBase):
     pass
+
 
 class ProductInDB(ProductBase):
     id: int
@@ -34,6 +39,7 @@ class ProductInDB(ProductBase):
     updated_at: datetime
     created_from_off: bool
     has_non_vegan_old_receipe: Optional[bool] = None
+
 
 class ProductOut(BaseModel):
     id: int
@@ -46,7 +52,7 @@ class ProductOut(BaseModel):
     brand: Optional[Brand] = None
     status: str
     biodynamic: bool
-    state: str 
+    state: str
     created_from_off: bool
     checkings: List[CheckingOutForProduct]
     has_non_vegan_old_receipe: Optional[bool] = None
@@ -58,6 +64,7 @@ class ProductOut(BaseModel):
         json_encoders = {
             datetime: lambda v: v.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%f%z"),
         }
+
 
 class ProductOutPaginated(BaseModel):
     items: List[ProductOut]
@@ -84,4 +91,5 @@ class ProductFilters(BaseModel):
     state__in: Optional[List[str]] = Field(Query(None))
     created_at: Optional[str] = None
     created_at__gt: Optional[str] = None
+    updated_at__gt: Optional[str] = None
     last_requested_by__contains: Optional[str] = None

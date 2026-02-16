@@ -95,7 +95,7 @@ def fetch_partner_by_id(
 
     Returns:
         PartnerOut: The fetched partner.
-        
+
     Raises:
         HTTPException: If the partner is not found.
     """
@@ -176,7 +176,6 @@ def create_partner(
     "/{id}",
     response_model=PartnerOut,
     status_code=status.HTTP_200_OK,
-    dependencies=[Depends(RoleChecker(["contributor", "admin"]))]
 )
 def update_partner(
     id: int,
@@ -230,7 +229,7 @@ def update_partner(
     return partner
 
 
-@router.delete("/{id}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(RoleChecker(["contributor", "admin"]))])
+@router.delete("/{id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_partner(
     id: int,
     db: Session = Depends(get_db),
@@ -272,7 +271,8 @@ def upload_partner_logo(
     *,
     db: Session = Depends(get_db),
     partner_id: int,
-    file: UploadFile = File(..., description="Image du logo (JPG, PNG, WebP max 5MB)")
+    file: UploadFile = File(...,
+                            description="Image du logo (JPG, PNG, WebP max 5MB)")
 ):
     """
     Upload a logo for a partner.
@@ -291,7 +291,7 @@ def upload_partner_logo(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Partner with id {partner_id} not found"
         )
-    
+
     try:
         # Save the file and get the path
         logo_path = file_service.save_partner_logo(partner_id, file)
@@ -299,9 +299,9 @@ def upload_partner_logo(
         # Update the partner with the new logo path
         partner_update = PartnerUpdate(logo_path=logo_path)
         updated_partner = partner_crud.update(db, partner, partner_update)
-        
+
         return updated_partner
-        
+
     except HTTPException:
         raise
     except Exception as e:
@@ -331,7 +331,7 @@ def delete_partner_logo(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Partner with id {partner_id} not found"
         )
-    
+
     try:
         # Delete the physical file if it exists
         if partner.logo_path:
@@ -340,7 +340,7 @@ def delete_partner_logo(
         # Update the partner to remove the logo path
         partner_update = PartnerUpdate(logo_path=None)
         partner_crud.update(db, partner, partner_update)
-        
+
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
