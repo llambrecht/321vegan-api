@@ -33,6 +33,7 @@ def fetch_all_household_cleaners(db: Session = Depends(get_db)) -> List[Optional
     status_code=status.HTTP_201_CREATED,
     response_model_exclude_none=True,
     response_model_exclude_unset=True,
+    dependencies=[Depends(RoleChecker(["contributor", "admin"]))]
 )
 def create_household_cleaner(
     household_cleaner_create: Annotated[

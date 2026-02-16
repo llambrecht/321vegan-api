@@ -33,6 +33,7 @@ def fetch_all_cosmetics(db: Session = Depends(get_db)) -> List[Optional[Cosmetic
     status_code=status.HTTP_201_CREATED,
     response_model_exclude_none=True,
     response_model_exclude_unset=True,
+    dependencies=[Depends(RoleChecker(["contributor", "admin"]))]
 )
 def create_cosmetic(
     cosmetic_create: Annotated[
@@ -71,8 +72,9 @@ def create_cosmetic(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Couldn't create cosmetic. Error: {str(e)}",
-        ) from e 
+        ) from e
     return cosmetic
+
 
 @router.get(
     "/search", response_model=Optional[CosmeticOutPaginated], status_code=status.HTTP_200_OK
@@ -100,10 +102,10 @@ def fetch_paginated_cosmetics(
     page, size = pagination_params
     sortby, descending = orderby_params
     cosmetics, total = cosmetic_crud.get_many(
-        db, 
-        skip=page, 
-        limit=size, 
-        order_by=sortby, 
+        db,
+        skip=page,
+        limit=size,
+        order_by=sortby,
         descending=descending,
         **filter_params.model_dump(exclude_none=True)
     )
@@ -115,6 +117,7 @@ def fetch_paginated_cosmetics(
         "size": size,
         "pages": pages
     }
+
 
 @router.get(
     "/{id}",
@@ -144,6 +147,7 @@ def fetch_cosmetic_by_id(
             detail=f"Cosmetic with id {id} not found",
         )
     return cosmetic
+
 
 @router.put(
     "/{id}",
@@ -195,12 +199,13 @@ def update_cosmetic(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"Data integrity error: {error_message}",
             ) from e
-    except Exception as e:  
+    except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Couldn't update cosmetic with id {id}. Error: {str(e)}",
-        ) from e  
+        ) from e
     return cosmetic
+
 
 @router.delete("/{id}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(RoleChecker(["contributor", "admin"]))])
 def delete_cosmetic(
@@ -234,8 +239,8 @@ def delete_cosmetic(
 
     try:
         cosmetic_crud.delete(db, cosmetic)
-    except Exception as e:  
+    except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Couldn't delete cosmetic with id {id}. Error: {str(e)}",
-        ) from e  
+        ) from e

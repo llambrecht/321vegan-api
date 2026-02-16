@@ -95,7 +95,7 @@ def fetch_partner_category_by_id(
 
     Returns:
         PartnerCategoryOut: The fetched partner category.
-        
+
     Raises:
         HTTPException: If the partner category is not found.
     """
@@ -169,7 +169,6 @@ def create_partner_category(
     "/{id}",
     response_model=PartnerCategoryOut,
     status_code=status.HTTP_200_OK,
-    dependencies=[Depends(RoleChecker(["contributor", "admin"]))]
 )
 def update_partner_category(
     id: int,
@@ -223,7 +222,7 @@ def update_partner_category(
     return category
 
 
-@router.delete("/{id}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(RoleChecker(["contributor", "admin"]))])
+@router.delete("/{id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_partner_category(
     id: int,
     db: Session = Depends(get_db),
