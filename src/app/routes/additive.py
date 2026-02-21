@@ -4,7 +4,7 @@ from fastapi import APIRouter, Body, Depends, HTTPException, status
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.routes.dependencies import get_current_active_user, get_pagination_params, get_sort_by_params, RoleChecker
+from app.routes.dependencies import get_current_active_user_or_client, get_pagination_params, get_sort_by_params, RoleChecker
 from app.crud import additive_crud
 from app.database.db import get_db
 from app.log import get_logger
@@ -13,7 +13,7 @@ from app.schemas.additive import AdditiveCreate, AdditiveOut, AdditiveUpdate, Ad
 
 log = get_logger(__name__)
 
-router = APIRouter(dependencies=[Depends(get_current_active_user)])
+router = APIRouter(dependencies=[Depends(get_current_active_user_or_client)])
 
 
 @router.get(
