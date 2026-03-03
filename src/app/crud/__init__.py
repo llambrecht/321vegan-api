@@ -12,6 +12,7 @@ from app.crud.scan_event import scan_event_crud
 from app.crud.partner import partner_crud
 from app.crud.partner_category import partner_category_crud
 from app.crud import scoring
+from app.crud.subscription import subscription_crud
 
 __all__ = [
     "user_crud",
@@ -28,4 +29,5 @@ __all__ = [
     "partner_crud",
     "partner_category_crud",
     "scoring",
+    "subscription_crud",
 ]

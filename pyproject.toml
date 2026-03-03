@@ -13,7 +13,10 @@ dependencies = [
     "psycopg2-binary (>=2.9.10,<3.0.0)",
     "sqlalchemy (>=2.0.41,<3.0.0)",
     "alembic (>=1.16.1,<2.0.0)",
-    "pydantic (>=2.11.7,<3.0.0)"
+    "pydantic (>=2.11.7,<3.0.0)",
+    "app-store-server-library (>=1.0.0,<2.0.0)",
+    "google-api-python-client (>=2.0.0,<3.0.0)",
+    "google-auth (>=2.0.0,<3.0.0)"
 ]
 
 [tool.poetry]

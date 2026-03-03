@@ -49,6 +49,16 @@ class Settings(BaseSettings):
     # Frontend URL for password reset links
     FRONTEND_URL: str
 
+    # In-app purchase - Apple App Store
+    APPLE_BUNDLE_ID: str = ""
+    APPLE_ISSUER_ID: str = ""
+    APPLE_KEY_ID: str = ""
+    APPLE_PRIVATE_KEY_PATH: str = ""
+
+    # In-app purchase - Google Play
+    GOOGLE_PLAY_PACKAGE_NAME: str = ""
+    GOOGLE_SERVICE_ACCOUNT_PATH: str = ""
+
 
 class ContainerDevSettings(Settings):
     model_config = SettingsConfigDict(
