@@ -11,6 +11,10 @@ uploads/interesting_products/
 uploads/product_categories/
 uploads/partners/
 
+# Secrets / private keys
+secrets/
+*.p8
+
 # macOS
 .DS_Store
 

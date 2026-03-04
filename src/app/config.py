@@ -49,6 +49,9 @@ class Settings(BaseSettings):
     # Frontend URL for password reset links
     FRONTEND_URL: str
 
+    # Sentry
+    SENTRY_DSN: str = ""
+
     # In-app purchase - Apple App Store
     APPLE_BUNDLE_ID: str = ""
     APPLE_ISSUER_ID: str = ""

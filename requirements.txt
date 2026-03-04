@@ -6,3 +6,7 @@ python-multipart
 pydantic-settings
 pydantic[email]
 httpx
+app-store-server-library
+google-api-python-client
+google-auth
+sentry-sdk[fastapi]

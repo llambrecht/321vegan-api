@@ -1,9 +1,19 @@
+import sentry_sdk
 from urllib.parse import urlencode
 from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
+from app.config import settings
+
+if settings.SENTRY_DSN:
+    sentry_sdk.init(
+        dsn=settings.SENTRY_DSN,
+        traces_sample_rate=0.1,
+        send_default_pii=False,
+    )
+
 from app.routes import (
     auth_router,
     account_router,
