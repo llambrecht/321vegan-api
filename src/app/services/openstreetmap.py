@@ -7,8 +7,11 @@ log = get_logger(__name__)
 
 class OpenStreetMapService:
     """Service to interact with OpenStreetMap Overpass API."""
-    
-    OVERPASS_API_URL = "https://overpass.kumi.systems/api/interpreter"
+
+    OVERPASS_API_URLS = [
+        "https://overpass.kumi.systems/api/interpreter",
+        "https://overpass-api.de/api/interpreter",
+    ]
     TIMEOUT = 20.0  # seconds
     
     @staticmethod
@@ -26,39 +29,45 @@ class OpenStreetMapService:
         """
         
         query = f"[out:json][timeout:3600];(node(around:{radius_meters},{latitude},{longitude})[\"shop\"~\"^(supermarket|convenience|greengrocer|food)$\"];way(around:{radius_meters},{latitude},{longitude})[\"shop\"~\"^(supermarket|convenience|greengrocer|food)$\"];);out center;"
-        
-        try:
-            async with httpx.AsyncClient(timeout=OpenStreetMapService.TIMEOUT) as client:
-                response = await client.post(
-                    OpenStreetMapService.OVERPASS_API_URL,
-                    headers={"User-Agent": "321vegan-api/1.0 (contact@321vegan.fr)"},
-                    data={"data": query}
-                )
-                response.raise_for_status()
-                
-                data = response.json()
-                elements = data.get("elements", [])
-                
-                if not elements:
-                    return None
-                
-                shop = OpenStreetMapService._find_closest_shop(elements, latitude, longitude)
-                
-                parsed_shop = OpenStreetMapService._parse_osm_shop(shop)
-                
-                # Validate that we have coordinates
-                if not parsed_shop.get("latitude") or not parsed_shop.get("longitude"):
-                    log.error(f"Shop from OSM has no valid coordinates: {shop.get('id')}")
-                    return None
-                
-                return parsed_shop
-                
-        except httpx.HTTPError as e:
-            log.error(f"Error calling Overpass API: {e}")
-            return None
-        except Exception as e:
-            log.error(f"Unexpected error in find_nearby_shop: {e}")
-            return None
+
+        last_error = None
+        for url in OpenStreetMapService.OVERPASS_API_URLS:
+            try:
+                async with httpx.AsyncClient(timeout=OpenStreetMapService.TIMEOUT) as client:
+                    response = await client.post(
+                        url,
+                        headers={"User-Agent": "321vegan-api/1.0 (contact@321vegan.fr)"},
+                        data={"data": query}
+                    )
+                    response.raise_for_status()
+
+                    data = response.json()
+                    elements = data.get("elements", [])
+
+                    if not elements:
+                        return None
+
+                    shop = OpenStreetMapService._find_closest_shop(elements, latitude, longitude)
+
+                    parsed_shop = OpenStreetMapService._parse_osm_shop(shop)
+
+                    # Validate that we have coordinates
+                    if not parsed_shop.get("latitude") or not parsed_shop.get("longitude"):
+                        log.error(f"Shop from OSM has no valid coordinates: {shop.get('id')}")
+                        return None
+
+                    return parsed_shop
+
+            except httpx.HTTPError as e:
+                last_error = e
+                log.warning(f"Overpass API failed ({url}): {type(e).__name__}: {e}")
+                continue
+            except Exception as e:
+                log.error(f"Unexpected error in find_nearby_shop ({url}): {type(e).__name__}: {e}")
+                return None
+
+        log.error(f"All Overpass API endpoints failed. Last error: {type(last_error).__name__}: {last_error}")
+        return None
     
     @staticmethod
     def _find_closest_shop(shops: list, target_lat: float, target_lon: float) -> Dict[str, Any]:
