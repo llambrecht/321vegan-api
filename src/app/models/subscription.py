@@ -4,18 +4,15 @@ from sqlalchemy import Column, Integer, String, Enum, DateTime, ForeignKey, Text
 from sqlalchemy.orm import relationship
 from app.database.base_class import Base
 
-
 class SubscriptionPlatform(str, enum.Enum):
     APPLE = "apple"
     GOOGLE = "google"
-
 
 class SubscriptionStatus(str, enum.Enum):
     ACTIVE = "active"
     EXPIRED = "expired"
     CANCELLED = "cancelled"
     GRACE_PERIOD = "grace_period"
-
 
 class SubscriptionEventType(str, enum.Enum):
     INITIAL_PURCHASE = "initial_purchase"
@@ -24,7 +21,6 @@ class SubscriptionEventType(str, enum.Enum):
     EXPIRY = "expiry"
     REFUND = "refund"
     GRACE_PERIOD = "grace_period"
-
 
 class Subscription(Base):
     __tablename__ = "subscriptions"
@@ -43,7 +39,6 @@ class Subscription(Base):
 
     user = relationship("User", backref="subscriptions")
     events = relationship("SubscriptionEvent", back_populates="subscription", cascade="all, delete", passive_deletes=True)
-
 
 class SubscriptionEvent(Base):
     __tablename__ = "subscription_events"
