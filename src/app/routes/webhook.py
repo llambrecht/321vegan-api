@@ -21,7 +21,6 @@ async def apple_webhook(
     """
     Receive Apple App Store Server Notifications V2.
     Apple sends a signed JWS payload with subscription events.
-    This endpoint is unauthenticated — Apple calls it directly.
     """
     try:
         body = await request.json()
@@ -54,7 +53,6 @@ async def google_webhook(
     """
     Receive Google Real-Time Developer Notifications via Pub/Sub push.
     Google sends a Pub/Sub message with base64-encoded subscription data.
-    This endpoint is unauthenticated — Google calls it directly.
     """
     try:
         body = await request.json()
