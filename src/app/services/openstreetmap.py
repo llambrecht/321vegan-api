@@ -22,7 +22,7 @@ class OpenStreetMapService:
         Parameters:
             latitude (float): The latitude to search around.
             longitude (float): The longitude to search around.
-            radius_meters (int): The search radius in meters (default 50).
+            radius_meters (int): The search radius in meters (default 100).
             
         Returns:
             Optional[Dict[str, Any]]: Shop data from OSM, or None if not found.
