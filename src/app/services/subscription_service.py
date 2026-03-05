@@ -2,6 +2,11 @@ import json
 from datetime import datetime, timezone
 from typing import Optional
 
+from appstoreserverlibrary.api_client import AppStoreServerAPIClient
+from appstoreserverlibrary.models.Environment import Environment
+from appstoreserverlibrary.signed_data_verifier import SignedDataVerifier
+from google.oauth2 import service_account
+from googleapiclient.discovery import build
 from sqlalchemy.orm import Session
 
 from app.config import settings
@@ -27,22 +32,29 @@ class SubscriptionService:
     def verify_apple_transaction(self, transaction_id: str) -> Optional[dict]:
         """
         Verify a transaction with Apple App Store Server API v2.
-        Uses the appstoreserverlibrary package.
+        Tries production first, falls back to sandbox if it fails.
 
         Returns decoded transaction info dict or None if invalid.
         """
-        try:
-            from appstoreserverlibrary.api_client import AppStoreServerAPIClient
-            from appstoreserverlibrary.models.Environment import Environment
+        result = self._try_apple_verification(transaction_id, Environment.PRODUCTION)
+        if result:
+            return result
 
+        log.info("Apple production verification failed, trying sandbox...")
+        result = self._try_apple_verification(transaction_id, Environment.SANDBOX)
+        if result:
+            return result
+
+        log.error(f"Apple transaction verification failed for both environments")
+        return None
+
+    def _try_apple_verification(self, transaction_id: str, environment) -> Optional[dict]:
+        """Attempt Apple transaction verification against a specific environment."""
+        try:
             private_key = self._read_apple_private_key()
             if not private_key:
                 log.error("Apple private key not configured")
                 return None
-
-            environment = Environment.PRODUCTION
-            if settings.ENV in ("local", "test", "dev"):
-                environment = Environment.SANDBOX
 
             client = AppStoreServerAPIClient(
                 signing_key=private_key,
@@ -53,9 +65,6 @@ class SubscriptionService:
             )
 
             transaction_info = client.get_transaction_info(transaction_id)
-
-            from appstoreserverlibrary.signed_data_verifier import SignedDataVerifier
-            from appstoreserverlibrary.models.Environment import Environment as Env
 
             verifier = SignedDataVerifier(
                 root_certificates=[],
@@ -80,7 +89,7 @@ class SubscriptionService:
             }
 
         except Exception as e:
-            log.error(f"Apple transaction verification failed: {str(e)}")
+            log.warning(f"Apple verification failed ({environment}): {str(e)}")
             return None
 
     def process_apple_webhook(self, signed_payload: str, db: Session) -> bool:
@@ -89,22 +98,24 @@ class SubscriptionService:
         The payload is a signed JWS that we decode and verify.
         """
         try:
-            from appstoreserverlibrary.signed_data_verifier import SignedDataVerifier
-            from appstoreserverlibrary.models.Environment import Environment
+            notification = None
+            for environment in (Environment.PRODUCTION, Environment.SANDBOX):
+                try:
+                    verifier = SignedDataVerifier(
+                        root_certificates=[],
+                        enable_online_checks=True,
+                        environment=environment,
+                        bundle_id=settings.APPLE_BUNDLE_ID,
+                        app_apple_id=None,
+                    )
+                    notification = verifier.verify_and_decode_notification(signed_payload)
+                    break
+                except Exception:
+                    continue
 
-            environment = Environment.PRODUCTION
-            if settings.ENV in ("local", "test", "dev"):
-                environment = Environment.SANDBOX
-
-            verifier = SignedDataVerifier(
-                root_certificates=[],
-                enable_online_checks=True,
-                environment=environment,
-                bundle_id=settings.APPLE_BUNDLE_ID,
-                app_apple_id=None,
-            )
-
-            notification = verifier.verify_and_decode_notification(signed_payload)
+            if not notification:
+                log.error("Apple webhook: could not verify notification in any environment")
+                return False
             notification_type = notification.notificationType
             transaction_info = verifier.verify_and_decode_transaction(
                 notification.data.signedTransactionInfo
@@ -154,9 +165,6 @@ class SubscriptionService:
         Returns subscription info dict or None if invalid.
         """
         try:
-            from google.oauth2 import service_account
-            from googleapiclient.discovery import build
-
             credentials = service_account.Credentials.from_service_account_file(
                 settings.GOOGLE_SERVICE_ACCOUNT_PATH,
                 scopes=["https://www.googleapis.com/auth/androidpublisher"],
