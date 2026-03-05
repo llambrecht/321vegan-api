@@ -47,3 +47,20 @@ class SubscriptionEventOutPaginated(BaseModel):
     page: int
     size: int
     pages: int
+
+
+# Webhook schemas
+
+class AppleNotificationPayload(BaseModel):
+    signedPayload: str
+
+
+class GooglePubSubMessage(BaseModel):
+    data: str
+    message_id: Optional[str] = None
+    publish_time: Optional[str] = None
+
+
+class GooglePubSubPayload(BaseModel):
+    message: GooglePubSubMessage
+    subscription: Optional[str] = None
