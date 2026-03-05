@@ -1,9 +1,19 @@
+import sentry_sdk
 from urllib.parse import urlencode
 from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
+from app.config import settings
+
+if settings.SENTRY_DSN:
+    sentry_sdk.init(
+        dsn=settings.SENTRY_DSN,
+        traces_sample_rate=0.1,
+        send_default_pii=False,
+    )
+
 from app.routes import (
     auth_router,
     account_router,
@@ -25,6 +35,8 @@ from app.routes import (
     shop_router,
     partner_router,
     partner_category_router,
+    subscription_router,
+    webhook_router,
 )
 from app.log import get_logger
 
@@ -98,6 +110,8 @@ app.include_router(scan_event_router, prefix="/scan-events",
 app.include_router(shop_router, prefix="/shops", tags=["shop"])
 app.include_router(partner_router, prefix="/partners", tags=["partner"])
 app.include_router(partner_category_router, prefix="/partner-categories", tags=["partner_category"])
+app.include_router(subscription_router, prefix="/subscriptions", tags=["subscription"])
+app.include_router(webhook_router, prefix="/webhooks", tags=["webhook"])
 
 # Serve static files
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")

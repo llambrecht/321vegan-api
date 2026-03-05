@@ -14,3 +14,4 @@ from app.models.household_cleaner import HouseholdCleaner
 from app.models.additive import Additive
 from app.models.partner import Partner
 from app.models.partner_category import PartnerCategory
+from app.models.subscription import Subscription, SubscriptionEvent, SubscriptionPlatform, SubscriptionStatus, SubscriptionEventType

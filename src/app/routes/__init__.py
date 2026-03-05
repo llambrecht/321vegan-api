@@ -18,6 +18,8 @@ from app.routes.scan_event import router as scan_event_router
 from app.routes.shop import router as shop_router
 from app.routes.partner import router as partner_router
 from app.routes.partner_category import router as partner_category_router
+from app.routes.subscription import router as subscription_router
+from app.routes.webhook import router as webhook_router
 
 
 __all__ = [
@@ -41,4 +43,6 @@ __all__ = [
     "shop_router",
     "partner_router",
     "partner_category_router",
+    "subscription_router",
+    "webhook_router",
 ]
