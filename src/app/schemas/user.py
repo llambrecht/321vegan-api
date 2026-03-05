@@ -44,6 +44,7 @@ class UserOut(UserBase):
     nb_checkings: int = 0
     error_reports: List['ErrorReportOut'] = []
     supporter: int = 0
+    subscription_bypass: bool = False
     scanned_products: List[ScanSummaryItem] = []
 
     @field_validator('nb_products_sent', mode='before')
@@ -101,6 +102,7 @@ class UserPatch(BaseModel):
     nb_products_sent: Optional[int] = None
     nb_products_modified: Optional[int] = None
     supporter: Optional[int] = None
+    subscription_bypass: Optional[bool] = None
     password: Optional[str] = None
 
 

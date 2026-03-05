@@ -26,6 +26,7 @@ class User(Base):
     nb_products_sent = Column(Integer, default=0)
     nb_products_modified = Column(Integer, default=0)
     supporter = Column(SmallInteger, default=0, nullable=False)
+    subscription_bypass = Column(Boolean, default=False, nullable=False)
     reset_token = Column(String, nullable=True)
     reset_token_expires = Column(DateTime, nullable=True)
     checkings = relationship("Checking", 

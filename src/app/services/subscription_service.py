@@ -58,7 +58,7 @@ class SubscriptionService:
             from appstoreserverlibrary.models.Environment import Environment as Env
 
             verifier = SignedDataVerifier(
-                root_certificates=[],  # Apple root certs are bundled in the library
+                root_certificates=[],
                 enable_online_checks=True,
                 environment=environment,
                 bundle_id=settings.APPLE_BUNDLE_ID,
@@ -273,7 +273,7 @@ class SubscriptionService:
 
         original_tx_id = verified["original_transaction_id"]
 
-        # Upsert subscription
+        # Update subscription
         subscription = subscription_crud.get_by_original_transaction_id(db, original_tx_id)
         if subscription:
             subscription_crud.update_status(
