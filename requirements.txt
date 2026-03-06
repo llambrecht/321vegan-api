@@ -10,3 +10,4 @@ app-store-server-library
 google-api-python-client
 google-auth
 sentry-sdk[fastapi]
+boto3

@@ -11,6 +11,7 @@ from app.log import get_logger
 from app.models import InterestingProduct, User
 from app.models.interesting_product import InterestingProductType
 from app.schemas.interesting_product import InterestingProductCreate, InterestingProductOut, InterestingProductUpdate, InterestingProductOutPaginated, InterestingProductFilters
+from app.services.file_service import file_service
 
 log = get_logger(__name__)
 
@@ -22,7 +23,7 @@ router = APIRouter()
 )
 def fetch_all_interesting_products(
     db: Session = Depends(get_db),
-    current_user_or_client = Depends(get_current_active_user_or_client)
+    current_user_or_client=Depends(get_current_active_user_or_client)
 ) -> List[Optional[InterestingProductOut]]:
     """
     Fetch all interesting products.
@@ -46,7 +47,7 @@ def fetch_paginated_interesting_products(
     pagination_params: Tuple[int, int] = Depends(get_pagination_params),
     orderby_params: Tuple[str, bool] = Depends(get_sort_by_params),
     filter_params: InterestingProductFilters = Depends(),
-    current_user_or_client = Depends(get_current_active_user_or_client)
+    current_user_or_client=Depends(get_current_active_user_or_client)
 ) -> Optional[InterestingProductOutPaginated]:
     """
     Fetch many interesting products with pagination and filters.
@@ -63,10 +64,10 @@ def fetch_paginated_interesting_products(
     page, size = pagination_params
     sortby, descending = orderby_params
     products, total = interesting_product_crud.get_many(
-        db, 
-        skip=page, 
-        limit=size, 
-        order_by=sortby, 
+        db,
+        skip=page,
+        limit=size,
+        order_by=sortby,
         descending=descending,
         **filter_params.model_dump(exclude_none=True)
     )
@@ -88,7 +89,7 @@ def fetch_paginated_interesting_products(
 def fetch_interesting_product_by_ean(
     ean: str,
     db: Session = Depends(get_db),
-    current_user_or_client = Depends(get_current_active_user_or_client)
+    current_user_or_client=Depends(get_current_active_user_or_client)
 ) -> InterestingProductOut:
     """
     Fetches an interesting product by its EAN.
@@ -120,7 +121,7 @@ def fetch_interesting_product_by_ean(
 def fetch_interesting_product_by_id(
     id: int,
     db: Session = Depends(get_db),
-    current_user_or_client = Depends(get_current_active_user_or_client)
+    current_user_or_client=Depends(get_current_active_user_or_client)
 ) -> InterestingProductOut:
     """
     Fetches an interesting product by its ID.
@@ -185,13 +186,14 @@ def create_interesting_product(
     """
     try:
         # Check if category exists
-        category = product_category_crud.get_one(db, id=product_create.category_id)
+        category = product_category_crud.get_one(
+            db, id=product_create.category_id)
         if not category:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"Category with id {product_create.category_id} does not exist",
             )
-        
+
         product = interesting_product_crud.create(db, product_create)
     except HTTPException:
         raise
@@ -211,7 +213,7 @@ def create_interesting_product(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Couldn't create interesting product. Error: {str(e)}",
-        ) from e 
+        ) from e
     return product
 
 
@@ -249,17 +251,18 @@ def update_interesting_product(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Interesting product with id {id} not found",
         )
-    
+
     try:
         # Check if category exists if being updated
         if product_update.category_id:
-            category = product_category_crud.get_one(db, id=product_update.category_id)
+            category = product_category_crud.get_one(
+                db, id=product_update.category_id)
             if not category:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail=f"Category with id {product_update.category_id} does not exist",
                 )
-        
+
         product = interesting_product_crud.update(db, product, product_update)
     except HTTPException:
         raise
@@ -275,11 +278,11 @@ def update_interesting_product(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"Data integrity error: {error_message}",
             ) from e
-    except Exception as e:  
+    except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Couldn't update interesting product with id {id}. Error: {str(e)}",
-        ) from e  
+        ) from e
     return product
 
 
@@ -308,8 +311,12 @@ def delete_interesting_product(
             detail=f"Interesting product with id {id} not found. Cannot delete.",
         )
     try:
+        image_path = product.image
         interesting_product_crud.delete(db, product)
-    except Exception as e:  
+        # Delete the physical file if it exists
+        if image_path:
+            file_service.delete_image(image_path)
+    except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Couldn't delete interesting product with id {id}. Error: {str(e)}",
@@ -321,7 +328,8 @@ def upload_interesting_product_image(
     *,
     db: Session = Depends(get_db),
     product_id: int,
-    file: UploadFile = File(..., description="Image du produit (JPG, PNG, WebP max 5MB)")
+    file: UploadFile = File(...,
+                            description="Image du produit (JPG, PNG, WebP max 5MB)")
 ):
     """
     Upload an image for an interesting product.
@@ -331,26 +339,28 @@ def upload_interesting_product_image(
 
     The file will be saved in `/uploads/interesting_products/` and the path will be updated in the database.
     """
-    from app.services.file_service import file_service
 
     # Check if the product exists
-    product = interesting_product_crud.get_one(db, InterestingProduct.id == product_id)
+    product = interesting_product_crud.get_one(
+        db, InterestingProduct.id == product_id)
     if not product:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Interesting product with id {product_id} not found"
         )
-    
+
     try:
         # Save the file and get the path
-        image_path = file_service.save_interesting_product_image(product_id, file)
+        image_path = file_service.save_image(
+            product, file_service.interesting_products_dir, file)
 
         # Update the product with the new image path
         product_update = InterestingProductUpdate(image=image_path)
-        updated_product = interesting_product_crud.update(db, product, product_update)
-        
+        updated_product = interesting_product_crud.update(
+            db, product, product_update)
+
         return updated_product
-        
+
     except HTTPException:
         raise
     except Exception as e:
@@ -371,25 +381,24 @@ def delete_interesting_product_image(
 
     - **product_id**: ID of the interesting product
     """
-    from app.services.file_service import file_service
-
     # Check if the product exists
-    product = interesting_product_crud.get_one(db, InterestingProduct.id == product_id)
+    product = interesting_product_crud.get_one(
+        db, InterestingProduct.id == product_id)
     if not product:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Interesting product with id {product_id} not found"
         )
-    
+
     try:
         # Delete the physical file if it exists
         if product.image:
-            file_service.delete_interesting_product_image(product.image)
+            file_service.delete_image(product.image)
 
         # Update the product to remove the image path
         product_update = InterestingProductUpdate(image=None)
         interesting_product_crud.update(db, product, product_update)
-        
+
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

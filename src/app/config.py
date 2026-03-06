@@ -37,7 +37,7 @@ class Settings(BaseSettings):
     ALGORITHM: str
     ACCESS_TOKEN_EXPIRE_MINUTES: int
     REFRESH_TOKEN_EXPIRE_DAYS: int
-    
+
     # Email settings for password reset
     SMTP_HOST: str
     SMTP_PORT: int
@@ -45,7 +45,7 @@ class Settings(BaseSettings):
     SMTP_PASSWORD: str
     FROM_EMAIL: EmailStr
     RESET_TOKEN_EXPIRE_HOURS: int
-    
+
     # Frontend URL for password reset links
     FRONTEND_URL: str
 
@@ -61,6 +61,13 @@ class Settings(BaseSettings):
     # In-app purchase - Google Play
     GOOGLE_PLAY_PACKAGE_NAME: str = ""
     GOOGLE_SERVICE_ACCOUNT_PATH: str = ""
+
+    # S3 bucket settings
+    S3_STORAGE_REGION: str
+    S3_STORAGE_URL: str
+    S3_STORAGE_ACCESS_KEY: str
+    S3_STORAGE_SECRET_KEY: str
+    S3_STORAGE_BUCKET_NAME: str
 
 
 class ContainerDevSettings(Settings):

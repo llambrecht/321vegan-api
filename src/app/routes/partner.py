@@ -10,6 +10,7 @@ from app.database.db import get_db
 from app.log import get_logger
 from app.models.partner import Partner
 from app.schemas.partner import PartnerCreate, PartnerOut, PartnerUpdate, PartnerOutPaginated, PartnerFilters
+from app.services.file_service import file_service
 
 log = get_logger(__name__)
 
@@ -258,7 +259,11 @@ def delete_partner(
             detail=f"Partner with id {id} not found. Cannot delete.",
         )
     try:
+        logo_path = partner.logo_path
         partner_crud.delete(db, partner)
+        # Delete the physical logo file if it exists
+        if logo_path:
+            file_service.delete_image(logo_path)
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -282,7 +287,6 @@ def upload_partner_logo(
 
     The file will be saved in `/uploads/partners/` and the path will be updated in the database.
     """
-    from app.services.file_service import file_service
 
     # Check if the partner exists
     partner = partner_crud.get_one(db, Partner.id == partner_id)
@@ -294,7 +298,8 @@ def upload_partner_logo(
 
     try:
         # Save the file and get the path
-        logo_path = file_service.save_partner_logo(partner_id, file)
+        logo_path = file_service.save_image(
+            partner, file_service.partners_dir, file)
 
         # Update the partner with the new logo path
         partner_update = PartnerUpdate(logo_path=logo_path)
@@ -322,7 +327,6 @@ def delete_partner_logo(
 
     - **partner_id**: ID of the partner
     """
-    from app.services.file_service import file_service
 
     # Check if the partner exists
     partner = partner_crud.get_one(db, Partner.id == partner_id)
@@ -335,7 +339,7 @@ def delete_partner_logo(
     try:
         # Delete the physical file if it exists
         if partner.logo_path:
-            file_service.delete_partner_logo(partner.logo_path)
+            file_service.delete_image(partner.logo_path)
 
         # Update the partner to remove the logo path
         partner_update = PartnerUpdate(logo_path=None)

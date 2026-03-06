@@ -10,6 +10,7 @@ from app.database.db import get_db
 from app.log import get_logger
 from app.models import Brand
 from app.schemas.brand import BrandCreate, BrandOut, BrandUpdate, BrandOutPaginated, BrandFilters, BrandLookalikeFilter
+from app.services.file_service import file_service
 
 log = get_logger(__name__)
 
@@ -32,7 +33,7 @@ def fetch_all_brands(db: Session = Depends(get_db)) -> List[Optional[BrandOut]]:
     Returns:
         BrandOut: The list of brands fetched from the database.
     """
-    
+
     return brand_crud.get_all(db)
 
 
@@ -62,11 +63,11 @@ def fetch_paginated_brands(
     page, size = pagination_params
     sortby, descending = orderby_params
     brands, total = brand_crud.get_many(
-        db, 
-        skip=page, 
-        limit=size, 
-        order_by=sortby, 
-        descending=descending, 
+        db,
+        skip=page,
+        limit=size,
+        order_by=sortby,
+        descending=descending,
         **filter_params.model_dump(exclude_none=True)
     )
     pages = (total + size - 1) // size
@@ -124,11 +125,11 @@ def fetch_brand_by_id(
 
     Returns:
         BrandOut: The fetched brand with its full parent chain.
-        
+
     Notes:
         - Returns the complete parent chain (parent, parent's parent, etc.)
         - Child brands will inherit scores from root parent brand if they don't have their own
-        
+
     Raises:
         HTTPException: If the brand is not found.
     """
@@ -138,7 +139,7 @@ def fetch_brand_by_id(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Brand with id {id} not found",
         )
-    
+
     return brand
 
 
@@ -206,7 +207,7 @@ def create_brand(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Couldn't create brand. Error: {str(e)}",
-        ) from e 
+        ) from e
     return brand
 
 
@@ -265,11 +266,11 @@ def update_brand(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"Data integrity error: {error_message}",
             ) from e
-    except Exception as e:  
+    except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Couldn't update brand with id {id}. Error: {str(e)}",
-        ) from e  
+        ) from e
     return brand
 
 
@@ -303,8 +304,12 @@ def delete_brand(
             detail=f"Brand with id {id} not found. Cannot delete.",
         )
     try:
+        logo_path = brand.logo_path
         brand_crud.delete(db, brand)
-    except Exception as e:  
+        # Delete the physical file if it exists
+        if logo_path:
+            file_service.delete_image(logo_path)
+    except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Couldn't delete brand with id {id}. Error: {str(e)}",
@@ -316,7 +321,8 @@ def upload_brand_logo(
     *,
     db: Session = Depends(get_db),
     brand_id: int,
-    file: UploadFile = File(..., description="Image du logo (JPG, PNG, WebP max 5MB)")
+    file: UploadFile = File(...,
+                            description="Image du logo (JPG, PNG, WebP max 5MB)")
 ):
     """
     Upload a logo for a brand.
@@ -326,8 +332,6 @@ def upload_brand_logo(
 
     The file will be saved in `/uploads/brands/` and the path will be updated in the database.
     """
-    from app.services.file_service import file_service
-
     # Check if the brand exists
     brand = brand_crud.get_one(db, Brand.id == brand_id)
     if not brand:
@@ -335,17 +339,17 @@ def upload_brand_logo(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Brand with id {brand_id} not found"
         )
-    
+
     try:
         # Save the file and get the path
-        logo_path = file_service.save_brand_logo(brand_id, file)
-
+        logo_path = file_service.save_image(
+            brand, file_service.brands_dir, file)
         # Update the brand with the new logo path
         brand_update = BrandUpdate(logo_path=logo_path)
         updated_brand = brand_crud.update(db, brand, brand_update)
-        
+
         return updated_brand
-        
+
     except HTTPException:
         raise
     except Exception as e:
@@ -366,7 +370,6 @@ def delete_brand_logo(
 
     - **brand_id**: ID of the brand
     """
-    from app.services.file_service import file_service
 
     # Check if the brand exists
     brand = brand_crud.get_one(db, Brand.id == brand_id)
@@ -375,16 +378,16 @@ def delete_brand_logo(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Brand with id {brand_id} not found"
         )
-    
+
     try:
         # Delete the physical file if it exists
         if brand.logo_path:
-            file_service.delete_brand_logo(brand.logo_path)
+            file_service.delete_image(brand.logo_path)
 
         # Update the brand to remove the logo path
         brand_update = BrandUpdate(logo_path=None)
         brand_crud.update(db, brand, brand_update)
-        
+
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

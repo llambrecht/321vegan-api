@@ -5,10 +5,12 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.ext.hybrid import hybrid_method
 from app.database.base_class import Base
 
+
 class UserRole(str, enum.Enum):
     ADMIN = "admin"
     CONTRIBUTOR = "contributor"
     USER = "user"
+
 
 class User(Base):
     __tablename__ = "users"
@@ -29,10 +31,10 @@ class User(Base):
     subscription_bypass = Column(Boolean, default=False, nullable=False)
     reset_token = Column(String, nullable=True)
     reset_token_expires = Column(DateTime, nullable=True)
-    checkings = relationship("Checking", 
-        back_populates="user",
-        cascade="all, delete",
-        passive_deletes=True,)
+    checkings = relationship("Checking",
+                             back_populates="user",
+                             cascade="all, delete",
+                             passive_deletes=True,)
     error_reports = relationship("ErrorReport", back_populates="user")
 
     @property
@@ -49,16 +51,15 @@ class User(Base):
     @hybrid_method
     def is_user_active(self) -> bool:
         return self.is_active
-    
+
     @hybrid_method
     def is_admin(self) -> bool:
         return self.role == UserRole.ADMIN
-    
+
     @hybrid_method
     def is_contributor(self) -> bool:
         return self.role == UserRole.CONTRIBUTOR
-    
+
     @hybrid_method
     def has_role(self, role) -> bool:
         return role in self.roles()
-    

@@ -33,7 +33,7 @@ class CRUDRepository:
         self._model = model
         self._name = model.__name__
 
-    def count(self, db: Session, *args, **kwargs) -> int: 
+    def count(self, db: Session, *args, **kwargs) -> int:
         """
         Retrieves total records from the database.
 
@@ -181,7 +181,7 @@ class CRUDRepository:
 
         # sort by
         model_attribute = getattr(self._model, order_by, 'created_at')
-        
+
         items = query.\
             order_by(desc(model_attribute) if descending else asc(model_attribute)).\
             offset(skip).\
@@ -208,7 +208,8 @@ class CRUDRepository:
             str(self._model.__name__),
             obj_create.model_dump(),
         )
-        obj_create_data = obj_create.model_dump(exclude_none=True, exclude_unset=True)
+        obj_create_data = obj_create.model_dump(
+            exclude_none=True, exclude_unset=True)
         db_obj = self._model(**obj_create_data)
         db.add(db_obj)
         db.commit()
@@ -261,7 +262,8 @@ class CRUDRepository:
             ORMModel: The deleted object.
 
         """
-        log.debug("deleting record for %s with id %s", self._model.__name__, db_obj.id)
+        log.debug("deleting record for %s with id %s",
+                  self._model.__name__, db_obj.id)
         db.delete(db_obj)
         db.commit()
         return db_obj
