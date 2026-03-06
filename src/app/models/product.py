@@ -9,12 +9,14 @@ from app.models.checking import Checking
 from app.models.brand import Brand
 from app.models.user import User
 
+
 class ProductState(str, enum.Enum):
     CREATED = "CREATED"
     NEED_CONTACT = "NEED_CONTACT"
     WAITING_REPLY = "WAITING_BRAND_REPLY"
     WAITING_PUBLISH = "WAITING_PUBLISH"
     PUBLISHED = "PUBLISHED"
+
 
 class ProductStatus(str, enum.Enum):
     VEGAN = "VEGAN"
@@ -33,6 +35,7 @@ class Product(Base):
     name = Column(String)
     description = Column(Text)
     problem_description = Column(Text)
+    image = Column(String, nullable=True)
     brand_id = Column(Integer, ForeignKey("brands.id"))
     brand = relationship("Brand", back_populates="products")
     status = Column(Enum(ProductStatus), default=ProductStatus.MAYBE_VEGAN)
@@ -41,13 +44,13 @@ class Product(Base):
     created_from_off = Column(Boolean, default=False)
     has_non_vegan_old_receipe = Column(Boolean, nullable=True)
     last_modified_by = Column(Integer, ForeignKey("users.id"), nullable=True)
-    checkings = relationship("Checking", 
-        back_populates="product",
-        cascade="all, delete",
-        passive_deletes=True, 
-        lazy="selectin", 
-        order_by=lambda: desc(Checking.requested_on)) 
-    
+    checkings = relationship("Checking",
+                             back_populates="product",
+                             cascade="all, delete",
+                             passive_deletes=True,
+                             lazy="selectin",
+                             order_by=lambda: desc(Checking.requested_on))
+
     @hybrid_property
     def brand_name(self):
         if self.brand:
@@ -68,7 +71,7 @@ class Product(Base):
     def last_requested_on(self):
         if self.checkings:
             return max(
-                self.checkings, 
+                self.checkings,
                 key=lambda checking: checking.requested_on
             ).requested_on
         else:
@@ -89,7 +92,7 @@ class Product(Base):
     def last_requested_by(self):
         if self.checkings:
             return max(
-                self.checkings, 
+                self.checkings,
                 key=lambda checking: checking.requested_on
             ).user.nickname
         else:
@@ -106,5 +109,3 @@ class Product(Base):
             .limit(1)
             .as_scalar()
         )
-    
-    
