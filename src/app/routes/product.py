@@ -1,9 +1,9 @@
+import time
+from pathlib import Path
 from typing import Annotated, List, Optional, Tuple
-
-from fastapi import APIRouter, Body, Depends, HTTPException, status
+from fastapi import APIRouter, Body, Depends, HTTPException, status, File, UploadFile
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
-
 from app.routes.dependencies import get_current_active_user, get_pagination_params, get_sort_by_params, RoleChecker, get_current_active_user_or_client
 from app.crud import product_crud
 from app.crud.user import user_crud
@@ -11,8 +11,8 @@ from app.database.db import get_db
 from app.log import get_logger
 from app.models import Product, User
 from app.models.product import ProductState
-
-from app.schemas.product import ProductCreate, ProductOut, ProductUpdate, ProductOutPaginated, ProductOutCount, ProductFilters
+from app.schemas.product import ProductCreate, ProductOut, ProductUpdate, ProductOutPaginated, ProductOutCount, ProductFilters, ProductFile
+from app.services.s3_file_manager import s3_file_manager
 
 log = get_logger(__name__)
 
@@ -36,6 +36,7 @@ def fetch_all_products(db: Session = Depends(get_db)) -> List[Optional[ProductOu
         List[Optional[ProductOut]]: The list of products fetched from the database.
     """
     return product_crud.get_all(db)
+
 
 @router.get(
     "/count", response_model=Optional[ProductOutCount], status_code=status.HTTP_200_OK, dependencies=[Depends(get_current_active_user)]
@@ -65,6 +66,7 @@ def fetch_count_products(
         "total": total
     }
 
+
 @router.get(
     "/search", response_model=Optional[ProductOutPaginated], status_code=status.HTTP_200_OK, dependencies=[Depends(get_current_active_user)]
 )
@@ -91,10 +93,10 @@ def fetch_paginated_products(
     page, size = pagination_params
     sortby, descending = orderby_params
     products, total = product_crud.get_many(
-        db, 
-        skip=page, 
-        limit=size, 
-        order_by=sortby, 
+        db,
+        skip=page,
+        limit=size,
+        order_by=sortby,
         descending=descending,
         **filter_params.model_dump(exclude_none=True)
     )
@@ -189,12 +191,12 @@ def create_product(
                     "biodynamic": False,
                     "state": 'STATE',
                     "has_non_vegan_old_receipe": True,
-                    "user_id": 1
                 }
             ]
         ),
     ],
     db: Session = Depends(get_db),
+    current_user_or_client=Depends(get_current_active_user_or_client)
 ):
     """
     Create a product.
@@ -213,24 +215,12 @@ def create_product(
         HTTPException: If there is an error creating
             the product in the database.
     """
+    try:
+        user = None
+        if isinstance(current_user_or_client, User):
+            user = current_user_or_client
+        product = product_crud.create(db, product_create, user)
 
-    # If user_id was provided in the request, increment their nb_products_sent counter
-    user_id = product_create.user_id
-    if user_id:
-        user_crud.increment_products_sent(db, user_id)
-
-    try:        
-        # Create product data excluding user_id field
-        # But set last_modified_by to user_id if provided
-        product_data_dict = product_create.model_dump(exclude={'user_id'}, exclude_none=True, exclude_unset=True)
-        if user_id:
-            product_data_dict['last_modified_by'] = user_id
-        
-        from app.schemas.product import ProductBase
-        product_base = ProductBase(**product_data_dict)
-        product = product_crud.create(db, product_base)
-        
-            
     except IntegrityError as e:
         error_message = str(e.orig)
         if "unique constraint" in error_message.lower() and "ean" in error_message.lower():
@@ -252,7 +242,7 @@ def create_product(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Couldn't create product. Error: {str(e)}",
-        ) from e 
+        ) from e
     return product
 
 
@@ -300,16 +290,7 @@ def update_product(
             product_update = ProductUpdate(
                 **dict_product_update,
             )
-        product = product_crud.update(db, product, product_update)
-        
-        # Set last_modified_by to current user
-        product.last_modified_by = active_user.id
-        
-        # Increment user's nb_products_modified counter
-        active_user.nb_products_modified = (active_user.nb_products_modified or 0) + 1
-        db.commit()
-        db.refresh(active_user)
-        db.refresh(product)
+        product = product_crud.update(db, product, product_update, active_user)
     except IntegrityError as e:
         error_message = str(e.orig)
         if "unique constraint" in error_message.lower() and "ean" in error_message.lower():
@@ -327,11 +308,11 @@ def update_product(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"Data integrity error: {error_message}",
             ) from e
-    except Exception as e:  
+    except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Couldn't update product with id {id}. Error: {str(e)}",
-        ) from e  
+        ) from e
     return product
 
 
@@ -366,9 +347,100 @@ def delete_product(
         )
 
     try:
+        image_path = product.image
         product_crud.delete(db, product)
-    except Exception as e:  
+        # Delete the physical file if it exists
+        if image_path:
+            s3_file_manager.delete_file(image_path)
+    except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Couldn't delete product with id {id}. Error: {str(e)}",
-        ) from e  
+        ) from e
+
+
+@router.post("/{id}/image", response_model=ProductOut, status_code=status.HTTP_200_OK)
+def upload_product_image(
+    *,
+    db: Session = Depends(get_db),
+    id: int,
+    file: UploadFile = File(...,
+                            description="Image (JPG, PNG, WebP max 5MB)"),
+    active_user: User = Depends(get_current_active_user),
+):
+    """
+    Upload an image for a product.
+
+    id (int): The ID of the product to be updated.
+    file (UploadFile): Image file (JPG, PNG, WebP, max 5MB)
+
+    The file will be saved in `/uploads/products/` and the path will be updated in the database.
+    """
+    # Check if the product exists
+    product = product_crud.get_one(db, Product.id == id)
+    if product is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Product with id {id} not found. Cannot upload file.",
+        )
+
+    try:
+        old_image = product.image
+        # Save the file and get the path
+        file_extension = Path(file.filename or "").suffix.lower()
+        filename = f"product_{product.id}_{product.ean}_{time.strftime('%Y%m%d_%H%M%S')}{file_extension}"
+        s3_file_manager.upload_image(filename, file)
+
+        # Update the product with the new image path
+        product_update = ProductFile(image=filename)
+        updated_product = product_crud.update(
+            db, product, product_update, active_user)
+
+        # Delete the physical old image if it exists
+        if old_image:
+            s3_file_manager.delete_file(old_image)
+
+        return updated_product
+    except Exception as e:
+        print(e)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error uploading image: {str(e)}"
+        ) from e
+
+
+@router.delete("/{id}/image", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(RoleChecker(["contributor", "admin"]))])
+def delete_product_image(
+    *,
+    db: Session = Depends(get_db),
+    id: int,
+    active_user: User = Depends(get_current_active_user),
+):
+    """
+    Delete the image of a product.
+
+    id (int): The ID of the product to be updated.
+    """
+
+    # Check if the product exists
+    product = product_crud.get_one(db, Product.id == id)
+    if not product:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Product with id {id} not found"
+        )
+
+    try:
+        # Delete the physical file if it exists
+        if product.image:
+            s3_file_manager.delete_file(product.image)
+
+        # Update the product to remove the logo path
+        product_update = ProductFile(image=None)
+        product_crud.update(db, product, product_update, active_user)
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error deleting image: {str(e)}"
+        ) from e
