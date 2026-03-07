@@ -58,6 +58,7 @@ class Settings(BaseSettings):
     APPLE_KEY_ID: str = ""
     APPLE_PRIVATE_KEY_PATH: str = ""
     APPLE_ROOT_CA_CERT_PATH: str = ""
+    APPLE_APP_ID: int | None = None
 
     # In-app purchase - Google Play
     GOOGLE_PLAY_PACKAGE_NAME: str = ""

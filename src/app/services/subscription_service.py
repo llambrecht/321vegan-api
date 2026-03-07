@@ -72,10 +72,10 @@ class SubscriptionService:
                 enable_online_checks=True,
                 environment=environment,
                 bundle_id=settings.APPLE_BUNDLE_ID,
-                app_apple_id=None,
+                app_apple_id=settings.APPLE_APP_ID,
             )
 
-            decoded = verifier.verify_and_decode_transaction(
+            decoded = verifier.verify_and_decode_signed_transaction(
                 transaction_info.signedTransactionInfo
             )
 
@@ -108,7 +108,7 @@ class SubscriptionService:
                         enable_online_checks=True,
                         environment=environment,
                         bundle_id=settings.APPLE_BUNDLE_ID,
-                        app_apple_id=None,
+                        app_apple_id=settings.APPLE_APP_ID,
                     )
                     notification = verifier.verify_and_decode_notification(signed_payload)
                     break
@@ -119,7 +119,7 @@ class SubscriptionService:
                 log.error("Apple webhook: could not verify notification in any environment")
                 return False
             notification_type = notification.notificationType
-            transaction_info = verifier.verify_and_decode_transaction(
+            transaction_info = verifier.verify_and_decode_signed_transaction(
                 notification.data.signedTransactionInfo
             )
 
