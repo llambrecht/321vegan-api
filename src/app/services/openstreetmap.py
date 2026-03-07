@@ -12,7 +12,8 @@ class OpenStreetMapService:
         "https://overpass.kumi.systems/api/interpreter",
         "https://overpass-api.de/api/interpreter",
     ]
-    TIMEOUT = 20.0  # seconds
+    OVERPASS_QUERY_TIMEOUT = 10  # seconds, server-side timeout
+    TIMEOUT = 15.0  # seconds, HTTP client timeout
     
     @staticmethod
     async def find_nearby_shop(latitude: float, longitude: float, radius_meters: int = 100) -> Optional[Dict[str, Any]]:
@@ -28,7 +29,7 @@ class OpenStreetMapService:
             Optional[Dict[str, Any]]: Shop data from OSM, or None if not found.
         """
         
-        query = f"[out:json][timeout:3600];(node(around:{radius_meters},{latitude},{longitude})[\"shop\"~\"^(supermarket|convenience|greengrocer|food)$\"];way(around:{radius_meters},{latitude},{longitude})[\"shop\"~\"^(supermarket|convenience|greengrocer|food)$\"];);out center;"
+        query = f"[out:json][timeout:{OpenStreetMapService.OVERPASS_QUERY_TIMEOUT}];(node(around:{radius_meters},{latitude},{longitude})[\"shop\"~\"^(supermarket|convenience|greengrocer|food)$\"];way(around:{radius_meters},{latitude},{longitude})[\"shop\"~\"^(supermarket|convenience|greengrocer|food)$\"];);out center;"
 
         last_error = None
         for url in OpenStreetMapService.OVERPASS_API_URLS:
