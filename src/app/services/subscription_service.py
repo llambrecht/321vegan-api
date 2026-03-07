@@ -66,8 +66,9 @@ class SubscriptionService:
 
             transaction_info = client.get_transaction_info(transaction_id)
 
+            root_certs = self._load_apple_root_certificates()
             verifier = SignedDataVerifier(
-                root_certificates=[],
+                root_certificates=root_certs,
                 enable_online_checks=True,
                 environment=environment,
                 bundle_id=settings.APPLE_BUNDLE_ID,
@@ -99,10 +100,11 @@ class SubscriptionService:
         """
         try:
             notification = None
+            root_certs = self._load_apple_root_certificates()
             for environment in (Environment.PRODUCTION, Environment.SANDBOX):
                 try:
                     verifier = SignedDataVerifier(
-                        root_certificates=[],
+                        root_certificates=root_certs,
                         enable_online_checks=True,
                         environment=environment,
                         bundle_id=settings.APPLE_BUNDLE_ID,
@@ -328,6 +330,14 @@ class SubscriptionService:
         except Exception as e:
             log.error(f"Could not read Apple private key: {str(e)}")
             return None
+
+    def _load_apple_root_certificates(self) -> list[bytes]:
+        try:
+            with open(settings.APPLE_ROOT_CA_CERT_PATH, "rb") as f:
+                return [f.read()]
+        except Exception as e:
+            log.error(f"Could not read Apple root CA certificate: {str(e)}")
+            return []
 
     @staticmethod
     def _map_apple_notification(notification_type: str) -> tuple[Optional[SubscriptionEventType], Optional[SubscriptionStatus]]:
