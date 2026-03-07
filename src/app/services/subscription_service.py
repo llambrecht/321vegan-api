@@ -323,9 +323,9 @@ class SubscriptionService:
     # Helpers
     # ──────────────────────────────────────────────
 
-    def _read_apple_private_key(self) -> Optional[str]:
+    def _read_apple_private_key(self) -> Optional[bytes]:
         try:
-            with open(settings.APPLE_PRIVATE_KEY_PATH, "r") as f:
+            with open(settings.APPLE_PRIVATE_KEY_PATH, "rb") as f:
                 return f.read()
         except Exception as e:
             log.error(f"Could not read Apple private key: {str(e)}")
