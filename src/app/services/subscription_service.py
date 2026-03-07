@@ -86,7 +86,7 @@ class SubscriptionService:
                 "expires_date": datetime.fromtimestamp(
                     decoded.expiresDate / 1000, tz=timezone.utc
                 ) if decoded.expiresDate else None,
-                "raw": transaction_info.__dict__,
+                "raw": {"signedTransactionInfo": transaction_info.signedTransactionInfo},
             }
 
         except Exception as e:
