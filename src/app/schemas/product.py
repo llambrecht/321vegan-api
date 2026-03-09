@@ -27,7 +27,7 @@ class ProductBase(BaseModel):
 
 
 class ProductCreate(ProductBase):
-    pass
+    user_id: Optional[int] = None
 
 
 class ProductUpdate(ProductBase):

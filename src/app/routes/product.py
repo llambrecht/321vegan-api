@@ -219,6 +219,8 @@ def create_product(
         user = None
         if isinstance(current_user_or_client, User):
             user = current_user_or_client
+        elif product_create.user_id is not None:
+            user = user_crud.get_one(db, User.id == product_create.user_id)
         product = product_crud.create(db, product_create, user)
 
     except IntegrityError as e:

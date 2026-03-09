@@ -17,13 +17,10 @@ def get_db() -> Generator:
     Raises:
         Exception: If an error occurs while getting the database session.
     """
-
-    log.debug("getting database session")
     db = SessionLocal()
     try:
         yield db
     finally: 
-        log.debug("closing database session")
         db.close() 
 
 

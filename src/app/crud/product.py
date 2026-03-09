@@ -48,7 +48,8 @@ class ProductCRUDRepository(CRUDRepository):
             user.id if user is not None else 0
         )
         obj_create_data = obj_create.model_dump(
-            exclude_none=True, exclude_unset=True, exclude_defaults=True
+            exclude_none=True, exclude_unset=True, exclude_defaults=True,
+            exclude={"user_id"}
         )
         if user:
             obj_create_data['last_modified_by'] = user.id
