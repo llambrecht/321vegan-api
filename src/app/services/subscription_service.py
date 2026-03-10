@@ -129,7 +129,15 @@ class SubscriptionService:
                 log.warning(f"Apple webhook: subscription not found for {original_tx_id}")
                 return False
 
-            event_type, new_status = self._map_apple_notification(notification_type)
+            # Idempotency: skip if we already processed this transaction
+            incoming_tx_id = str(transaction_info.transactionId)
+            if subscription.transaction_id == incoming_tx_id:
+                log.info(f"Apple webhook: already processed transaction {incoming_tx_id}, skipping")
+                return True
+
+            event_type, new_status = self._map_apple_notification(
+                notification_type, getattr(notification, "subtype", None)
+            )
 
             if new_status:
                 expires_at = None
@@ -146,7 +154,10 @@ class SubscriptionService:
             if event_type:
                 subscription_crud.create_event(
                     db, subscription.id, event_type,
-                    platform_event_data={"notification_type": notification_type},
+                    platform_event_data={
+                        "notification_type": notification_type,
+                        "subtype": getattr(notification, "subtype", None),
+                    },
                 )
 
             return True
@@ -340,11 +351,20 @@ class SubscriptionService:
             return []
 
     @staticmethod
-    def _map_apple_notification(notification_type: str) -> tuple[Optional[SubscriptionEventType], Optional[SubscriptionStatus]]:
+    def _map_apple_notification(
+        notification_type: str, subtype: Optional[str] = None
+    ) -> tuple[Optional[SubscriptionEventType], Optional[SubscriptionStatus]]:
         """Map Apple notification type to our event type and subscription status."""
+        # Handle DID_CHANGE_RENEWAL_STATUS subtypes
+        if notification_type == "DID_CHANGE_RENEWAL_STATUS":
+            if subtype == "AUTO_RENEW_ENABLED":
+                return (SubscriptionEventType.RENEWAL, None)
+            elif subtype == "AUTO_RENEW_DISABLED":
+                return (SubscriptionEventType.CANCELLATION, None)
+            return (None, None)
+
         mapping = {
             "DID_RENEW": (SubscriptionEventType.RENEWAL, SubscriptionStatus.ACTIVE),
-            "DID_CHANGE_RENEWAL_STATUS": (SubscriptionEventType.CANCELLATION, None),  # auto-renew toggled off, still active until expires_at
             "EXPIRED": (SubscriptionEventType.EXPIRY, SubscriptionStatus.EXPIRED),
             "GRACE_PERIOD_EXPIRED": (SubscriptionEventType.EXPIRY, SubscriptionStatus.EXPIRED),
             "DID_FAIL_TO_RENEW": (SubscriptionEventType.GRACE_PERIOD, SubscriptionStatus.GRACE_PERIOD),
