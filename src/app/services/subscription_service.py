@@ -385,6 +385,8 @@ class SubscriptionService:
             5: (SubscriptionEventType.GRACE_PERIOD, SubscriptionStatus.GRACE_PERIOD),# SUBSCRIPTION_ON_HOLD
             6: (SubscriptionEventType.GRACE_PERIOD, SubscriptionStatus.GRACE_PERIOD),# SUBSCRIPTION_IN_GRACE_PERIOD
             7: (SubscriptionEventType.RENEWAL, SubscriptionStatus.ACTIVE),           # SUBSCRIPTION_RESTARTED
+            10: (SubscriptionEventType.PAUSED, SubscriptionStatus.PAUSED),            # SUBSCRIPTION_PAUSED
+            11: (SubscriptionEventType.PAUSED, None),                               # SUBSCRIPTION_PAUSE_SCHEDULE_CHANGED
             12: (SubscriptionEventType.REFUND, SubscriptionStatus.CANCELLED),        # SUBSCRIPTION_REVOKED
             13: (SubscriptionEventType.EXPIRY, SubscriptionStatus.EXPIRED),          # SUBSCRIPTION_EXPIRED
         }

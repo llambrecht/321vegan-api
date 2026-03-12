@@ -13,6 +13,7 @@ class SubscriptionStatus(str, enum.Enum):
     EXPIRED = "expired"
     CANCELLED = "cancelled"
     GRACE_PERIOD = "grace_period"
+    PAUSED = "paused"
 
 class SubscriptionEventType(str, enum.Enum):
     INITIAL_PURCHASE = "initial_purchase"
@@ -21,6 +22,7 @@ class SubscriptionEventType(str, enum.Enum):
     EXPIRY = "expiry"
     REFUND = "refund"
     GRACE_PERIOD = "grace_period"
+    PAUSED = "paused"
 
 class Subscription(Base):
     __tablename__ = "subscriptions"
