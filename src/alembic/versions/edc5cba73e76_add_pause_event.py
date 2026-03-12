@@ -18,8 +18,10 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    op.execute("ALTER TYPE subscriptionstatus ADD VALUE IF NOT EXISTS 'paused'")
-    op.execute("ALTER TYPE subscriptioneventtype ADD VALUE IF NOT EXISTS 'paused'")
+    ctx = op.get_context()
+    with ctx.autocommit_block():
+        op.execute("ALTER TYPE subscriptionstatus ADD VALUE IF NOT EXISTS 'PAUSED'")
+        op.execute("ALTER TYPE subscriptioneventtype ADD VALUE IF NOT EXISTS 'PAUSED'")
 
 
 def downgrade() -> None:
