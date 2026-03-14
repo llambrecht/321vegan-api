@@ -127,6 +127,19 @@ class CRUDRepository:
             return result[0]
         return None
 
+    def get_by_id(self, db: Session, id: int) -> Optional[ORMModel]:
+        """
+        Retrieves a record by its ID.
+
+        Parameters:
+            db (Session): The database session.
+            id (int): The record ID.
+
+        Returns:
+            Optional[ORMModel]: The retrieved record, if found.
+        """
+        return db.query(self._model).filter(self._model.id == id).first()
+
     def get_all(self, db: Session, *args, **kwargs) -> List[ORMModel]:
         """
         Retrieves all records from the database.
