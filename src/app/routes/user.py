@@ -9,6 +9,9 @@ from app.crud import user_crud
 from app.database.db import get_db
 from app.log import get_logger
 from app.models import User
+from app.models.product import Product
+from app.models.error_report import ErrorReport
+from app.models.scan_event import ScanEvent
 from app.schemas.user import UserCreate, UserOutPaginated, UserOut, UserUpdate, UserFilters, UserUpdateOwn, UserPatch
 from app.security import get_password_hash
 
@@ -256,6 +259,9 @@ def delete_user(
                 detail="You can only delete your own account",
             )
     try:
+        db.query(Product).filter(Product.last_modified_by == id).update({Product.last_modified_by: None})
+        db.query(ErrorReport).filter(ErrorReport.created_by == id).update({ErrorReport.created_by: None})
+        db.query(ScanEvent).filter(ScanEvent.user_id == id).update({ScanEvent.user_id: None})
         user_crud.delete(db, user)
     except Exception as e:
         raise HTTPException(
