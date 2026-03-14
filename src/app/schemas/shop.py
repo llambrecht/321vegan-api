@@ -53,6 +53,18 @@ class ShopOutPaginated(BaseModel):
     pages: int
 
 
+class ShopScanSummaryOut(BaseModel):
+    ean: str
+    scan_count: int
+    last_scanned_at: datetime
+
+    class Config:
+        from_attributes = True
+        json_encoders = {
+            datetime: lambda v: v.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%f%z"),
+        }
+
+
 class ShopFilters(BaseModel):
     """Filters for shops search."""
     name: Optional[str] = None

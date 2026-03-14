@@ -115,6 +115,66 @@ class ShopCRUDRepository(CRUDRepository):
         """
         return db.query(self._model).filter(self._model.osm_id == osm_id).first()
     
+    def get_in_bounding_box(
+        self,
+        db: Session,
+        min_lat: float,
+        max_lat: float,
+        min_lng: float,
+        max_lng: float,
+        limit: int = 300
+    ) -> List[Shop]:
+        """
+        Get shops within a geographic bounding box.
+
+        Parameters:
+            db (Session): The database session.
+            min_lat (float): Minimum latitude.
+            max_lat (float): Maximum latitude.
+            min_lng (float): Minimum longitude.
+            max_lng (float): Maximum longitude.
+            limit (int): Maximum number of shops to return (default 300).
+
+        Returns:
+            List[Shop]: List of shops within the bounding box.
+        """
+        return db.query(self._model).filter(
+            self._model.latitude.between(min_lat, max_lat),
+            self._model.longitude.between(min_lng, max_lng)
+        ).limit(limit).all()
+
+    def get_shop_scan_summary(self, db: Session, shop_id: int) -> List[dict]:
+        """
+        Get distinct EANs scanned at a shop with scan count and last scan date.
+
+        Parameters:
+            db (Session): The database session.
+            shop_id (int): The shop ID.
+
+        Returns:
+            List[dict]: List of dicts with ean, scan_count, last_scanned_at.
+        """
+        results = (
+            db.query(
+                ScanEvent.ean,
+                func.count(ScanEvent.id).label("scan_count"),
+                func.max(ScanEvent.date_created).label("last_scanned_at"),
+            )
+            .filter(ScanEvent.shop_id == shop_id)
+            .group_by(ScanEvent.ean)
+            .order_by(func.max(ScanEvent.date_created).desc())
+            .all()
+        )
+
+        return [
+            {
+                "ean": row.ean,
+                "scan_count": row.scan_count,
+                "last_scanned_at": row.last_scanned_at,
+            }
+            for row in results
+        ]
+
     def get_shops_by_eans(self, db: Session, eans: List[str]) -> List[int]:
         """
         Get shop IDs that have products with the given EAN codes.

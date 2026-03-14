@@ -1,6 +1,6 @@
 from typing import List, Optional, Tuple
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -9,7 +9,7 @@ from app.crud.shop import shop_crud
 from app.database.db import get_db
 from app.log import get_logger
 from app.models import Shop, User
-from app.schemas.shop import ShopCreate, ShopOut, ShopUpdate, ShopOutPaginated, ShopFilters
+from app.schemas.shop import ShopCreate, ShopOut, ShopUpdate, ShopOutPaginated, ShopFilters, ShopScanSummaryOut
 
 log = get_logger(__name__)
 
@@ -72,6 +72,58 @@ def fetch_paginated_shops(
         "size": size,
         "pages": pages
     }
+
+
+@router.get(
+    "/in-area", response_model=List[ShopOut], status_code=status.HTTP_200_OK
+)
+def fetch_shops_in_area(
+    min_lat: float = Query(..., ge=-90, le=90),
+    max_lat: float = Query(..., ge=-90, le=90),
+    min_lng: float = Query(..., ge=-180, le=180),
+    max_lng: float = Query(..., ge=-180, le=180),
+    db: Session = Depends(get_db),
+) -> List[ShopOut]:
+    """
+    Fetch shops within a geographic bounding box.
+
+    Parameters:
+        min_lat (float): Minimum latitude of the bounding box.
+        max_lat (float): Maximum latitude of the bounding box.
+        min_lng (float): Minimum longitude of the bounding box.
+        max_lng (float): Maximum longitude of the bounding box.
+        db (Session): The database session.
+
+    Returns:
+        List[ShopOut]: The list of shops within the bounding box (max 300).
+    """
+    return shop_crud.get_in_bounding_box(db, min_lat, max_lat, min_lng, max_lng)
+
+
+@router.get(
+    "/{id}/products", response_model=List[ShopScanSummaryOut], status_code=status.HTTP_200_OK
+)
+def fetch_shop_products(
+    id: int, db: Session = Depends(get_db)
+) -> List[ShopScanSummaryOut]:
+    """
+    Fetch products of interest scanned at a shop.
+
+    Returns distinct EANs with scan count and last scan date.
+
+    Parameters:
+        id (int): The ID of the shop.
+        db (Session): The database session.
+
+    Returns:
+        List[ShopScanSummaryOut]: The scan summary for products at this shop.
+    """
+    shop = shop_crud.get_by_id(db, id)
+    if shop is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Shop not found"
+        )
+    return shop_crud.get_shop_scan_summary(db, id)
 
 
 @router.get(
