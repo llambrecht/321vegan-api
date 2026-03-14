@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.routes.dependencies import get_current_active_user, get_current_active_user_or_client, get_pagination_params, get_sort_by_params, RoleChecker
+from app.routes.dependencies import get_current_active_user, get_pagination_params, get_sort_by_params, RoleChecker
 from app.crud.shop import shop_crud
 from app.database.db import get_db
 from app.log import get_logger
@@ -13,7 +13,7 @@ from app.schemas.shop import ShopCreate, ShopOut, ShopUpdate, ShopOutPaginated, 
 
 log = get_logger(__name__)
 
-router = APIRouter(dependencies=[Depends(get_current_active_user_or_client)])
+router = APIRouter(dependencies=[Depends(get_current_active_user)])
 
 
 @router.get(
