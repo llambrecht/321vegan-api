@@ -22,17 +22,23 @@ class InterestingProduct(Base):
     type = Column(Enum(InterestingProductType), nullable=False, default=InterestingProductType.popular)
     category_id = Column(Integer, ForeignKey("product_categories.id"), nullable=False)
     brand_id = Column(Integer, ForeignKey("brands.id"), nullable=True)
-    
+
     # Relationships
     category = relationship("ProductCategory", back_populates="interesting_products")
     brand = relationship("Brand")
-    
+    alternative_products = relationship("Product", back_populates="interesting_product", lazy="selectin")
+
     @property
     def category_name(self) -> str | None:
         """Get the category name"""
         return self.category.name if self.category else None
-    
+
     @property
     def brand_name(self) -> str | None:
         """Get the brand name"""
         return self.brand.name if self.brand else None
+
+    @property
+    def alternative_eans(self) -> list[str]:
+        """Get the list of alternative EANs from related products"""
+        return [p.ean for p in self.alternative_products]

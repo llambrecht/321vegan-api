@@ -1,5 +1,5 @@
 import httpx
-from typing import Optional, Dict, Any
+from typing import Dict, Any, List
 from app.log import get_logger
 
 log = get_logger(__name__)
@@ -9,27 +9,27 @@ class OpenStreetMapService:
     """Service to interact with OpenStreetMap Overpass API."""
 
     OVERPASS_API_URLS = [
-        "https://overpass.kumi.systems/api/interpreter",
         "https://overpass-api.de/api/interpreter",
+        "https://overpass.kumi.systems/api/interpreter",
     ]
-    OVERPASS_QUERY_TIMEOUT = 10  # seconds, server-side timeout
-    TIMEOUT = 15.0  # seconds, HTTP client timeout
+    OVERPASS_QUERY_TIMEOUT = 25  # seconds, server-side timeout
+    TIMEOUT = 30.0  # seconds, HTTP client timeout
     
     @staticmethod
-    async def find_nearby_shop(latitude: float, longitude: float, radius_meters: int = 100) -> Optional[Dict[str, Any]]:
+    async def find_nearby_shops(latitude: float, longitude: float, radius_meters: int = 100) -> List[Dict[str, Any]]:
         """
-        Find a nearby shop using OpenStreetMap Overpass API.
-        
+        Find all nearby shops using OpenStreetMap Overpass API, sorted by distance (closest first).
+
         Parameters:
             latitude (float): The latitude to search around.
             longitude (float): The longitude to search around.
             radius_meters (int): The search radius in meters (default 100).
-            
+
         Returns:
-            Optional[Dict[str, Any]]: Shop data from OSM, or None if not found.
+            List[Dict[str, Any]]: List of shop data from OSM sorted by distance, or empty list if none found.
         """
-        
-        query = f"[out:json][timeout:{OpenStreetMapService.OVERPASS_QUERY_TIMEOUT}];(node(around:{radius_meters},{latitude},{longitude})[\"shop\"~\"^(supermarket|convenience|greengrocer|food)$\"];way(around:{radius_meters},{latitude},{longitude})[\"shop\"~\"^(supermarket|convenience|greengrocer|food)$\"];);out center;"
+
+        query = f"[out:json][timeout:{OpenStreetMapService.OVERPASS_QUERY_TIMEOUT}];(node(around:{radius_meters},{latitude},{longitude})[\"shop\"~\"^(supermarket|convenience|greengrocer|food|department_store|garden_centre)$\"];way(around:{radius_meters},{latitude},{longitude})[\"shop\"~\"^(supermarket|convenience|greengrocer|food|department_store|garden_centre)$\"];);out center;"
 
         last_error = None
         for url in OpenStreetMapService.OVERPASS_API_URLS:
@@ -46,59 +46,60 @@ class OpenStreetMapService:
                     elements = data.get("elements", [])
 
                     if not elements:
-                        return None
+                        return []
 
-                    shop = OpenStreetMapService._find_closest_shop(elements, latitude, longitude)
+                    sorted_shops = OpenStreetMapService._sort_shops_by_distance(elements, latitude, longitude)
 
-                    parsed_shop = OpenStreetMapService._parse_osm_shop(shop)
+                    parsed_shops = []
+                    for shop in sorted_shops:
+                        parsed = OpenStreetMapService._parse_osm_shop(shop)
+                        if parsed.get("latitude") and parsed.get("longitude"):
+                            parsed_shops.append(parsed)
+                        else:
+                            log.warning(f"Shop from OSM has no valid coordinates: {shop.get('id')}")
 
-                    # Validate that we have coordinates
-                    if not parsed_shop.get("latitude") or not parsed_shop.get("longitude"):
-                        log.error(f"Shop from OSM has no valid coordinates: {shop.get('id')}")
-                        return None
-
-                    return parsed_shop
+                    return parsed_shops
 
             except httpx.HTTPError as e:
                 last_error = e
                 log.warning(f"Overpass API failed ({url}): {type(e).__name__}: {e}")
                 continue
             except Exception as e:
-                log.error(f"Unexpected error in find_nearby_shop ({url}): {type(e).__name__}: {e}")
-                return None
+                log.error(f"Unexpected error in find_nearby_shops ({url}): {type(e).__name__}: {e}")
+                return []
 
         log.error(f"All Overpass API endpoints failed. Last error: {type(last_error).__name__}: {last_error}")
-        return None
+        return []
     
     @staticmethod
-    def _find_closest_shop(shops: list, target_lat: float, target_lon: float) -> Dict[str, Any]:
+    def _sort_shops_by_distance(shops: list, target_lat: float, target_lon: float) -> List[Dict[str, Any]]:
         """
-        Find the closest shop from a list based on distance.
-        
+        Sort shops by distance from the target coordinates (closest first).
+
         Parameters:
             shops (list): List of shop elements from OSM.
             target_lat (float): Target latitude.
             target_lon (float): Target longitude.
-            
+
         Returns:
-            Dict[str, Any]: The closest shop.
+            List[Dict[str, Any]]: Shops sorted by distance (closest first).
         """
         import math
-        
+
         def haversine_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
             """Calculate the great circle distance in meters between two points."""
             R = 6371000  # Earth radius in meters
-            
+
             phi1 = math.radians(lat1)
             phi2 = math.radians(lat2)
             delta_phi = math.radians(lat2 - lat1)
             delta_lambda = math.radians(lon2 - lon1)
-            
+
             a = math.sin(delta_phi / 2) ** 2 + math.cos(phi1) * math.cos(phi2) * math.sin(delta_lambda / 2) ** 2
             c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
-            
+
             return R * c
-        
+
         def get_shop_coords(shop: Dict[str, Any]) -> tuple:
             """Extract coordinates from shop data."""
             if "lat" in shop and "lon" in shop:
@@ -106,21 +107,17 @@ class OpenStreetMapService:
             elif "center" in shop:
                 return shop["center"]["lat"], shop["center"]["lon"]
             return None, None
-        
-        closest_shop = None
-        min_distance = float('inf')
-        
+
+        shops_with_distance = []
         for shop in shops:
             lat, lon = get_shop_coords(shop)
             if lat is None or lon is None:
                 continue
-            
             distance = haversine_distance(target_lat, target_lon, lat, lon)
-            if distance < min_distance:
-                min_distance = distance
-                closest_shop = shop
-        
-        return closest_shop if closest_shop else shops[0]
+            shops_with_distance.append((distance, shop))
+
+        shops_with_distance.sort(key=lambda x: x[0])
+        return [shop for _, shop in shops_with_distance]
     
     @staticmethod
     def _parse_osm_shop(shop_data: Dict[str, Any]) -> Dict[str, Any]:

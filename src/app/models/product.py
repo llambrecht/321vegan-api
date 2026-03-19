@@ -44,6 +44,8 @@ class Product(Base):
     created_from_off = Column(Boolean, default=False)
     has_non_vegan_old_receipe = Column(Boolean, nullable=True)
     last_modified_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+    interesting_product_id = Column(Integer, ForeignKey("interesting_products.id", ondelete="SET NULL"), nullable=True)
+    interesting_product = relationship("InterestingProduct", back_populates="alternative_products")
     checkings = relationship("Checking",
                              back_populates="product",
                              cascade="all, delete",

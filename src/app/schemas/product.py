@@ -24,6 +24,7 @@ class ProductBase(BaseModel):
     has_non_vegan_old_receipe: Optional[bool] = None
     last_modified_by: Optional[int] = None
     image: Optional[str] = None
+    interesting_product_id: Optional[int] = None
 
 
 class ProductCreate(ProductBase):
