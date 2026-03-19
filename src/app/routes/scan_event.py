@@ -276,6 +276,7 @@ async def create_scan_event(
                     "name": shop.name,
                     "address": shop.address,
                     "city": shop.city,
+                    "osm_id": shop.osm_id,
                 })
         response.nearby_shops = result
 
