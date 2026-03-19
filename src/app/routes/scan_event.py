@@ -11,7 +11,7 @@ from app.crud.shop import shop_crud
 from app.database.db import get_db
 from app.log import get_logger
 from app.models import ScanEvent, User, ApiClient
-from app.schemas.scan_event import ScanEventCreate, ScanEventOut, ScanEventUpdate, ScanEventOutPaginated, ScanEventFilters
+from app.schemas.scan_event import ScanEventCreate, ScanEventOut, ScanEventUpdate, ScanEventOutPaginated, ScanEventFilters, ConfirmShopRequest
 from app.schemas.shop import ShopCreate
 from app.services.openstreetmap import osm_service
 
@@ -181,44 +181,54 @@ async def create_scan_event(
         HTTPException: If the user does not exist.
         HTTPException: If there is an error creating the scan event.
     """
-    # Find or create a shop
-    if event_create.latitude and event_create.longitude and not event_create.shop_id:        
-        # Check if shop exists within 100 meters
+    # Find or create a shop (and collect nearby shops for the response)
+    nearby_shops = []
+    if event_create.latitude and event_create.longitude and not event_create.shop_id:
+        # Check if shop exists within 100 meters in our DB
         existing_shop = shop_crud.find_nearby(
-            db, 
-            event_create.latitude, 
-            event_create.longitude, 
+            db,
+            event_create.latitude,
+            event_create.longitude,
             radius_meters=100
         )
-        
+
         if existing_shop:
             event_create.shop_id = existing_shop.id
-        else:
-            # Query OpenStreetMap for nearby shops
-            osm_shop_data = await osm_service.find_nearby_shop(
+            # Collect all other nearby shops from our DB for alternatives
+            all_nearby = shop_crud.find_all_nearby(
+                db,
                 event_create.latitude,
                 event_create.longitude,
                 radius_meters=100
             )
-            
-            if osm_shop_data:
-                # Store the OSM API response in lookup_api_response field
-                event_create.lookup_api_response = json.dumps(osm_shop_data)
-                
-                # Verify if shop with same OSM ID already exists
-                # As we might not have found it but still could exist
-                existing_osm_shop = shop_crud.get_by_osm_id(db, osm_shop_data["osm_id"])
-                
-                if existing_osm_shop:
-                    event_create.shop_id = existing_osm_shop.id
-                else:
-                    # Create new shop
-                    try:
-                        new_shop = shop_crud.create(db, ShopCreate(**osm_shop_data))
-                        event_create.shop_id = new_shop.id
-                    except IntegrityError as e:
-                        db.rollback()
-    
+            nearby_shops = [s for s in all_nearby if s.id != existing_shop.id]
+        else:
+            # Query OpenStreetMap for ALL nearby shops
+            osm_shops_data = await osm_service.find_nearby_shops(
+                event_create.latitude,
+                event_create.longitude,
+                radius_meters=100
+            )
+
+            if osm_shops_data:
+                # Store the full OSM API response
+                event_create.lookup_api_response = json.dumps(osm_shops_data)
+
+                # Return OSM shops as-is (not created in DB yet).
+                # The closest one is linked only if it already exists in our DB.
+                for osm_shop_data in osm_shops_data:
+                    existing_osm_shop = shop_crud.get_by_osm_id(db, osm_shop_data["osm_id"])
+                    if existing_osm_shop:
+                        nearby_shops.append(existing_osm_shop)
+                    else:
+                        # Return OSM data without creating in DB — shop will be
+                        # created only when the user confirms via confirm-shop endpoint
+                        nearby_shops.append(osm_shop_data)
+
+                # Link the closest shop if it already exists in our DB
+                if nearby_shops and isinstance(nearby_shops[0], dict) is False:
+                    event_create.shop_id = nearby_shops[0].id
+
     try:
         event = scan_event_crud.create(db, event_create)
     except IntegrityError as e:
@@ -242,8 +252,39 @@ async def create_scan_event(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Couldn't create scan event. Error: {str(e)}",
-        ) from e 
-    return event
+        ) from e
+
+    # Build response with nearby shops (excluding the one already linked)
+    response = ScanEventOut.model_validate(event)
+    if nearby_shops:
+        result = []
+        for shop in nearby_shops:
+            if isinstance(shop, dict):
+                # OSM-only shop (not yet in DB)
+                result.append({
+                    "name": shop.get("name"),
+                    "address": shop.get("address"),
+                    "city": shop.get("city"),
+                    "osm_id": shop.get("osm_id"),
+                    "latitude": shop.get("latitude"),
+                    "longitude": shop.get("longitude"),
+                })
+            elif shop.id != event.shop_id:
+                # DB shop (exclude the one already linked)
+                result.append({
+                    "id": shop.id,
+                    "name": shop.name,
+                    "address": shop.address,
+                    "city": shop.city,
+                })
+        response.nearby_shops = result
+
+        # If no shop was linked yet, set shop_name from the closest nearby shop
+        # so the old app can still ask "Are you in [shop_name]?"
+        if not response.shop_name and nearby_shops:
+            first = nearby_shops[0]
+            response.shop_name = first.get("name") if isinstance(first, dict) else first.name
+    return response
 
 
 @router.put(
@@ -300,6 +341,75 @@ def update_scan_event(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Couldn't update scan event with id {id}. Error: {str(e)}",
         ) from e  
+    return event
+
+
+@router.post(
+    "/{id}/confirm-shop",
+    response_model=ScanEventOut,
+    status_code=status.HTTP_200_OK,
+)
+def confirm_shop(
+    id: int,
+    body: ConfirmShopRequest,
+    db: Session = Depends(get_db),
+    current_user_or_client: User | ApiClient = Depends(get_current_active_user_or_client),
+):
+    """
+    Confirm which shop the user is in by osm_id.
+
+    Looks up the OSM shop data from the scan event's stored lookup_api_response,
+    creates the shop in DB if it doesn't exist, and links it to the scan event.
+
+    Path parameter:
+        id: The scan event ID (e.g. /scan-events/53/confirm-shop)
+
+    Example body:
+        { "osm_id": "398056954" }
+    """
+    event = scan_event_crud.get_one(db, ScanEvent.id == id)
+    if event is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Scan event with id {id} not found",
+        )
+
+    # Check if this shop already exists in DB
+    existing_shop = shop_crud.get_by_osm_id(db, body.osm_id)
+    if existing_shop:
+        event = scan_event_crud.update(db, event, ScanEventUpdate(shop_id=existing_shop.id))
+        return event
+
+    # Find the OSM data from the stored lookup response
+    if not event.lookup_api_response:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No OSM lookup data stored for this scan event",
+        )
+
+    osm_shops_data = json.loads(event.lookup_api_response)
+    osm_shop_data = next((s for s in osm_shops_data if s.get("osm_id") == body.osm_id), None)
+
+    if osm_shop_data is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Shop with osm_id {body.osm_id} not found in lookup response",
+        )
+
+    # Create the shop in DB
+    try:
+        new_shop = shop_crud.create(db, ShopCreate(**osm_shop_data))
+    except IntegrityError:
+        db.rollback()
+        # Race condition — another request created it
+        new_shop = shop_crud.get_by_osm_id(db, body.osm_id)
+        if new_shop is None:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to create shop",
+            )
+
+    event = scan_event_crud.update(db, event, ScanEventUpdate(shop_id=new_shop.id))
     return event
 
 

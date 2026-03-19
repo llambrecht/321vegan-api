@@ -102,6 +102,49 @@ class ShopCRUDRepository(CRUDRepository):
         
         return None
     
+    def find_all_nearby(
+        self,
+        db: Session,
+        latitude: float,
+        longitude: float,
+        radius_meters: int = 100
+    ) -> List[Shop]:
+        """
+        Find all shops within a given radius, sorted by distance (closest first).
+
+        Parameters:
+            db (Session): The database session.
+            latitude (float): The latitude to search around.
+            longitude (float): The longitude to search around.
+            radius_meters (int): The search radius in meters (default 100).
+
+        Returns:
+            List[Shop]: Shops within radius sorted by distance.
+        """
+        earth_radius = 6371000
+
+        lat_range = radius_meters / 111320
+        lon_range = radius_meters / (111320 * func.cos(func.radians(latitude)))
+
+        shops = db.query(self._model).filter(
+            self._model.latitude.between(latitude - lat_range, latitude + lat_range),
+            self._model.longitude.between(longitude - lon_range, longitude + lon_range)
+        ).all()
+
+        shops_with_distance = []
+        for shop in shops:
+            a = (math.sin(math.radians(shop.latitude - latitude) / 2) ** 2 +
+                 math.cos(math.radians(latitude)) * math.cos(math.radians(shop.latitude)) *
+                 math.sin(math.radians(shop.longitude - longitude) / 2) ** 2)
+            c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+            distance = earth_radius * c
+
+            if distance <= radius_meters:
+                shops_with_distance.append((distance, shop))
+
+        shops_with_distance.sort(key=lambda x: x[0])
+        return [shop for _, shop in shops_with_distance]
+
     def get_by_osm_id(self, db: Session, osm_id: str) -> Optional[Shop]:
         """
         Get a shop by OpenStreetMap ID.

@@ -1,6 +1,29 @@
 from pydantic import BaseModel, Field
-from typing import Optional
+from typing import Optional, List
 from datetime import datetime, timezone
+
+
+class NearbyShopOut(BaseModel):
+    """A nearby shop returned alongside a scan event for shop selection.
+
+    DB shops have an `id`. OSM-only shops have `osm_id` (and no `id`).
+    Old app versions ignore entries without `id` and still work as before.
+    """
+    id: Optional[int] = None
+    name: str
+    address: Optional[str] = None
+    city: Optional[str] = None
+    osm_id: Optional[str] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+
+    class Config:
+        from_attributes = True
+
+
+class ConfirmShopRequest(BaseModel):
+    """Request body for confirming a shop from nearby_shops."""
+    osm_id: str
 
 
 class ScanEventBase(BaseModel):
@@ -33,6 +56,7 @@ class ScanEventInDB(ScanEventBase):
 class ScanEventOut(ScanEventInDB):
     user_nickname: Optional[str] = None
     shop_name: Optional[str] = None
+    nearby_shops: Optional[List[NearbyShopOut]] = None
 
     class Config:
         from_attributes = True

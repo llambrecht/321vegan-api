@@ -34,6 +34,7 @@ class InterestingProductInDB(InterestingProductBase):
 class InterestingProductOut(InterestingProductInDB):
     category_name: Optional[str] = None
     brand_name: Optional[str] = None
+    alternative_eans: list[str] = []
 
     class Config:
         from_attributes = True

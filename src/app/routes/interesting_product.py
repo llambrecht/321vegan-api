@@ -5,10 +5,10 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.routes.dependencies import get_current_active_user, get_current_active_user_or_client, get_pagination_params, get_sort_by_params, RoleChecker
-from app.crud import interesting_product_crud, product_category_crud
+from app.crud import interesting_product_crud, product_category_crud, product_crud
 from app.database.db import get_db
 from app.log import get_logger
-from app.models import InterestingProduct, User
+from app.models import InterestingProduct, Product, User
 from app.models.interesting_product import InterestingProductType
 from app.schemas.interesting_product import InterestingProductCreate, InterestingProductOut, InterestingProductUpdate, InterestingProductOutPaginated, InterestingProductFilters
 from app.services.file_service import file_service
@@ -404,3 +404,79 @@ def delete_interesting_product_image(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error deleting image: {str(e)}"
         ) from e
+
+
+@router.post(
+    "/{id}/alternative-eans/{ean}",
+    response_model=InterestingProductOut,
+    status_code=status.HTTP_200_OK,
+    dependencies=[Depends(RoleChecker(["contributor", "admin"]))]
+)
+def add_alternative_ean(
+    id: int,
+    ean: str,
+    db: Session = Depends(get_db),
+    active_user: User = Depends(get_current_active_user),
+):
+    """
+    Add a product as an alternative EAN for an interesting product.
+    """
+    interesting_product = interesting_product_crud.get_one(db, InterestingProduct.id == id)
+    if interesting_product is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Interesting product with id {id} not found",
+        )
+
+    product = product_crud.get_one(db, Product.ean == ean)
+    if product is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Product with EAN {ean} not found",
+        )
+
+    if product in interesting_product.alternative_products:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Product with EAN {ean} is already an alternative",
+        )
+
+    product.interesting_product_id = interesting_product.id
+    db.commit()
+    db.refresh(interesting_product)
+    return interesting_product
+
+
+@router.delete(
+    "/{id}/alternative-eans/{ean}",
+    response_model=InterestingProductOut,
+    status_code=status.HTTP_200_OK,
+    dependencies=[Depends(RoleChecker(["contributor", "admin"]))]
+)
+def remove_alternative_ean(
+    id: int,
+    ean: str,
+    db: Session = Depends(get_db),
+    active_user: User = Depends(get_current_active_user),
+):
+    """
+    Remove a product from the alternative EANs of an interesting product.
+    """
+    interesting_product = interesting_product_crud.get_one(db, InterestingProduct.id == id)
+    if interesting_product is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Interesting product with id {id} not found",
+        )
+
+    product = product_crud.get_one(db, Product.ean == ean)
+    if product is None or product.interesting_product_id != interesting_product.id:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Product with EAN {ean} is not an alternative for this interesting product",
+        )
+
+    product.interesting_product_id = None
+    db.commit()
+    db.refresh(interesting_product)
+    return interesting_product
