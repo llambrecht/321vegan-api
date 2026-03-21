@@ -396,7 +396,7 @@ def upload_product_image(
         # Update the product with the new image path
         product_update = ProductFile(image=filename)
         updated_product = product_crud.update(
-            db, product, product_update, active_user)
+            db, product, product_update, active_user, increment_modified=False)
 
         # Delete the physical old image if it exists
         if old_image:
@@ -439,7 +439,7 @@ def delete_product_image(
 
         # Update the product to remove the logo path
         product_update = ProductFile(image=None)
-        product_crud.update(db, product, product_update, active_user)
+        product_crud.update(db, product, product_update, active_user, increment_modified=False)
 
     except Exception as e:
         raise HTTPException(

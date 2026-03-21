@@ -70,7 +70,8 @@ class ProductCRUDRepository(CRUDRepository):
         db: Session,
         db_obj: Product,
         obj_update: ProductUpdate,
-        user: User
+        user: User,
+        increment_modified: bool = True
     ) -> Product:
         """
         Updates a record in the database.
@@ -100,8 +101,9 @@ class ProductCRUDRepository(CRUDRepository):
             setattr(db_obj, field, value)
         db.add(db_obj)
 
-        user.nb_products_modified = (
-            user.nb_products_modified or 0) + 1
+        if increment_modified:
+            user.nb_products_modified = (
+                user.nb_products_modified or 0) + 1
         db.commit()
         db.refresh(db_obj)
         db.refresh(user)
