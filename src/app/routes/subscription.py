@@ -3,7 +3,7 @@ import math
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 
-from app.routes.dependencies import get_current_active_user, get_pagination_params
+from app.routes.dependencies import get_current_active_user, get_current_client, get_pagination_params
 from app.crud.subscription import subscription_crud
 from app.database.db import get_db
 from app.log import get_logger
@@ -45,6 +45,16 @@ def verify_subscription(
             detail="Subscription verification failed",
         )
     return subscription
+
+
+@router.get("/count", status_code=status.HTTP_200_OK)
+def get_active_subscription_count(
+    db: Session = Depends(get_db),
+    _client=Depends(get_current_client),
+):
+    """Return the number of active subscribers, useful for displaying a community goal."""
+    count = subscription_crud.count_active(db)
+    return {"count": count}
 
 
 @router.get("/me", response_model=SubscriptionOut, status_code=status.HTTP_200_OK)

@@ -77,6 +77,11 @@ class SubscriptionCRUDRepository(CRUDRepository):
         db.refresh(subscription)
         return subscription
 
+    def count_active(self, db: Session) -> int:
+        return db.query(self._model).filter(
+            self._model.status == SubscriptionStatus.ACTIVE
+        ).count()
+
     def grant_supporter_badge(self, db: Session, user_id: int) -> None:
         """Set the supporter badge permanently. Once granted, never revoked."""
         user = db.query(User).filter(User.id == user_id).first()
