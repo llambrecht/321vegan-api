@@ -36,7 +36,7 @@ def fetch_all_api_clients(db: Session = Depends(get_db)) -> List[Optional[ApiCli
     Returns:
         List[Optional[ApiClientOut]]: The list of api clients fetched from the database.
     """
-    
+
     return apiclient_crud.get_all(db)
 
 
@@ -59,7 +59,7 @@ def fetch_paginated_api_clients(
         db (Session): The database session.
         pagination_params (Tuple[int, int]): The pagination parameters (skip, limit).
         orderby_params (Tuple[str, bool]): The order by parameters (sortby, descending).
-    
+
     Raises:
         HTTPException: If the user does not have enough
             permissions to fetch the api client.
@@ -70,11 +70,11 @@ def fetch_paginated_api_clients(
     page, size = pagination_params
     sortby, descending = orderby_params
     clients, total = apiclient_crud.get_many(
-        db, 
-        skip=page, 
-        limit=size, 
-        order_by=sortby, 
-        descending=descending, 
+        db,
+        skip=page,
+        limit=size,
+        order_by=sortby,
+        descending=descending,
         **filter_params.model_dump(exclude_none=True)
     )
     pages = (total + size - 1) // size
@@ -186,7 +186,7 @@ def create_api_client(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Couldn't create product. Error: {str(e)}",
-        ) from e 
+        ) from e
     return client
 
 
@@ -246,11 +246,11 @@ def update_api_client(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"Data integrity error: {error_message}",
             ) from e
-    except Exception as e:  
+    except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Couldn't update api client with id {id}. Error: {str(e)}",
-        ) from e  
+        ) from e
     return client
 
 
@@ -281,7 +281,7 @@ def delete_api_client(
         )
     try:
         apiclient_crud.delete(db, client)
-    except Exception as e:  
+    except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Couldn't delete api client with id {id}. Error: {str(e)}",

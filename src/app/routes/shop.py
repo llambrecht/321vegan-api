@@ -57,10 +57,10 @@ def fetch_paginated_shops(
     sortby, descending = orderby_params
     filters = filter_params.model_dump(exclude_none=True)
     shops, total = shop_crud.get_many(
-        db, 
-        skip=page, 
-        limit=size, 
-        order_by=sortby, 
+        db,
+        skip=page,
+        limit=size,
+        order_by=sortby,
         descending=descending,
         filters=filters
     )
@@ -212,7 +212,7 @@ def update_shop(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Shop not found"
         )
-    
+
     try:
         updated_shop = shop_crud.update(db, shop, shop_in)
         log.info(f"Shop updated: {updated_shop.name} (ID: {updated_shop.id})")
@@ -248,6 +248,6 @@ def delete_shop(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Shop not found"
         )
-    
+
     shop_crud.delete(db, shop)
     log.info(f"Shop deleted: ID {id}")

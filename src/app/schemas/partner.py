@@ -23,12 +23,12 @@ class PartnerBase(BaseModel):
 class PartnerCreate(PartnerBase):
     name: str
     url: str
-    
+
     @field_validator('is_affiliate', 'show_code_in_website', mode='before')
     @classmethod
     def set_boolean_defaults(cls, v):
         return False if v is None else v
-    
+
     @field_validator('is_active', mode='before')
     @classmethod
     def set_is_active_default(cls, v):
@@ -65,7 +65,7 @@ class PartnerOut(BaseModel):
     @classmethod
     def set_boolean_defaults(cls, v):
         return False if v is None else v
-    
+
     @field_validator('is_active', mode='before')
     @classmethod
     def set_is_active_default(cls, v):
@@ -94,3 +94,6 @@ class PartnerFilters(BaseModel):
     show_code_in_website: Optional[bool] = None
     is_active: Optional[bool] = None
     category_id: Optional[int] = None
+    category___name__contains: Optional[str] = None
+    category___name__lookalike: Optional[str] = None
+    category___id: Optional[str] = None

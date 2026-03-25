@@ -1,3 +1,4 @@
+from app.schemas.partner import PartnerOut
 from pydantic import BaseModel
 from typing import List, Optional
 from datetime import datetime, timezone
@@ -46,8 +47,8 @@ class PartnerCategoryFilters(BaseModel):
     name: Optional[str] = None
     name__ilike: Optional[str] = None
     name__contains: Optional[str] = None
+    name__lookalike: Optional[str] = None
 
 
 # Resolve forward references
-from app.schemas.partner import PartnerOut
 PartnerOut.model_rebuild()

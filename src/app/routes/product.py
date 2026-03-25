@@ -404,7 +404,6 @@ def upload_product_image(
 
         return updated_product
     except Exception as e:
-        print(e)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error uploading image: {str(e)}"

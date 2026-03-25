@@ -16,6 +16,7 @@ class ProductCategoryBase(BaseModel):
     parent_category_id: Optional[int] = None
     image: Optional[str] = None
 
+
 class ProductCategoryCreate(ProductCategoryBase):
     pass
 
@@ -24,6 +25,7 @@ class ProductCategoryUpdate(BaseModel):
     name: Optional[str] = Field(None, min_length=1, max_length=255)
     parent_category_id: Optional[int] = None
     image: Optional[str] = None
+
 
 class ProductCategoryInDB(ProductCategoryBase):
     id: int
@@ -62,3 +64,5 @@ class ProductCategoryFilters(BaseModel):
     parent_category_id: Optional[int] = None
     parent___name__contains: Optional[str] = None
     parent___name__lookalike: Optional[str] = None
+    created_at: Optional[str] = None
+    created_at__gt: Optional[str] = None

@@ -48,5 +48,6 @@ class HouseholdCleanerFilters(BaseModel):
     brand_name: Optional[str] = None
     brand_name__ilike: Optional[str] = None
     brand_name__contains: Optional[str] = None
+    brand_name__lookalike: Optional[str] = None
     is_vegan: Optional[bool] = None
     is_cruelty_free: Optional[bool] = None

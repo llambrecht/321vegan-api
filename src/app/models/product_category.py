@@ -15,7 +15,6 @@ class ProductCategory(Base):
         "product_categories.id"), nullable=True)
     image = Column(String, nullable=True)
 
-
     # Self-referential relationship for hierarchical categories
     parent = relationship(
         "ProductCategory", back_populates="children", remote_side=[id])

@@ -30,7 +30,7 @@ def fetch_current_active_user(user: User = Depends(get_current_active_user)):
     Raises:
         HTTPException: If the current active user is not found.
     """
-    
+
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -60,7 +60,7 @@ def update_current_active_user(
         HTTPException: If the user is not found.
         HTTPException: If there is an error updating the user.
     """
-    
+
     if active_user is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -72,18 +72,19 @@ def update_current_active_user(
         )  # exclude_unset=True -
         # do not update fields with None
         if 'password' in dict_user_update:
-            dict_user_update['password'] = get_password_hash(user_update.password)
+            dict_user_update['password'] = get_password_hash(
+                user_update.password)
         user_in = UserUpdateOwn(
             **dict_user_update
         )
         user = user_crud.update(db, active_user, user_in)
     except IntegrityError as e:
         error_message = str(e.orig)
-        if "unique constraint" in error_message.lower() and "nickname" in error_message.lower(): 
+        if "unique constraint" in error_message.lower() and "nickname" in error_message.lower():
             raise HTTPException(
-                    status_code=status.HTTP_409_CONFLICT,
-                    detail=f"User with NICKNAME {user_in.nickname} already exists",
-                ) from e   
+                status_code=status.HTTP_409_CONFLICT,
+                detail=f"User with NICKNAME {user_in.nickname} already exists",
+            ) from e
         else:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,

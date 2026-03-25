@@ -17,7 +17,10 @@ class Shop(Base):
     city = Column(String, nullable=True)
     country = Column(String, nullable=True)
     osm_id = Column(String, nullable=True, unique=True, index=True)
-    osm_type = Column(String, nullable=True)  # node or way (relation not searched)
+    # node or way (relation not searched)
+    osm_type = Column(String, nullable=True)
     shop_type = Column(String, nullable=True)  # supermarket, convenience, ...
-    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
-    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
+    created_at = Column(DateTime(timezone=True),
+                        server_default=func.now(), nullable=False)
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(
+    ), onupdate=func.now(), nullable=False)

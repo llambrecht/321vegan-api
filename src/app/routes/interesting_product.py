@@ -5,12 +5,13 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.routes.dependencies import get_current_active_user, get_current_active_user_or_client, get_pagination_params, get_sort_by_params, RoleChecker
-from app.crud import interesting_product_crud, product_category_crud
+from app.crud import interesting_product_crud, product_category_crud, product_crud
 from app.database.db import get_db
 from app.log import get_logger
-from app.models import InterestingProduct, User
+from app.models import InterestingProduct, User, Product
 from app.models.interesting_product import InterestingProductType
-from app.schemas.interesting_product import InterestingProductCreate, InterestingProductOut, InterestingProductUpdate, InterestingProductOutPaginated, InterestingProductFilters
+from app.schemas.interesting_product import InterestingProductCreate, InterestingProductOut, InterestingProductUpdate, InterestingProductOutPaginated, InterestingProductFilters, InterestingProductUploadImage, InterestingProductInsert
+from app.schemas.product import ProductUpdate
 from app.services.file_service import file_service
 
 log = get_logger(__name__)
@@ -154,7 +155,7 @@ def fetch_interesting_product_by_id(
     dependencies=[Depends(RoleChecker(["contributor", "admin"]))]
 )
 def create_interesting_product(
-    product_create: Annotated[
+    interesting_product_create: Annotated[
         InterestingProductCreate,
         Body(
             examples=[
@@ -173,7 +174,7 @@ def create_interesting_product(
     Create an interesting product.
 
     Parameters:
-        product_create (InterestingProductCreate): The interesting product data to be created.
+        interesting_product_create (InterestingProductCreate): The interesting product data to be created.
         db (Session): The database session.
         active_user (User): The current active user.
 
@@ -185,24 +186,33 @@ def create_interesting_product(
         HTTPException: If there is an error creating the product.
     """
     try:
-        # Check if category exists
-        category = product_category_crud.get_one(
-            db, id=product_create.category_id)
-        if not category:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Category with id {product_create.category_id} does not exist",
-            )
-
-        product = interesting_product_crud.create(db, product_create)
-    except HTTPException:
+        dict_interesting_product_create = interesting_product_create.model_dump()
+        alternative_product_ids = dict_interesting_product_create['alternative_products']
+        interesting_product = interesting_product_crud.create(
+            db, InterestingProductInsert(
+                **dict_interesting_product_create))
+        for alternative_id in alternative_product_ids:
+            product = product_crud.get_one(db, Product.id == alternative_id)
+            if product is None:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"Product with id {alternative_id} not found",
+                )
+            product = product_crud.update(
+                db, product, ProductUpdate(ean=product.ean, interesting_product_id=interesting_product.id), active_user)
+    except HTTPException as e:
         raise
     except IntegrityError as e:
         error_message = str(e.orig)
         if "foreign key constraint" in error_message.lower() and "category_id" in error_message.lower():
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Category with id {product_create.category_id} does not exist",
+                detail=f"Category with id {interesting_product_create.category_id} does not exist",
+            ) from e
+        elif "foreign key constraint" in error_message.lower() and "brand_id" in error_message.lower():
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Brand with id {interesting_product_create.brand_id} does not exist",
             ) from e
         else:
             raise HTTPException(
@@ -214,7 +224,7 @@ def create_interesting_product(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Couldn't create interesting product. Error: {str(e)}",
         ) from e
-    return product
+    return interesting_product
 
 
 @router.put(
@@ -225,7 +235,7 @@ def create_interesting_product(
 )
 def update_interesting_product(
     id: int,
-    product_update: InterestingProductUpdate,
+    interesting_product_update: InterestingProductUpdate,
     db: Session = Depends(get_db),
     active_user: User = Depends(get_current_active_user),
 ):
@@ -234,7 +244,7 @@ def update_interesting_product(
 
     Parameters:
         id (int): The ID of the interesting product to be updated.
-        product_update (InterestingProductUpdate): The updated product data.
+        interesting_product_update (InterestingProductUpdate): The updated product data.
         db (Session): The database session.
         active_user (User): The current active user.
 
@@ -245,25 +255,36 @@ def update_interesting_product(
         HTTPException: If the interesting product does not exist.
         HTTPException: If there is an error updating the product.
     """
-    product = interesting_product_crud.get_one(db, InterestingProduct.id == id)
-    if product is None:
+    interesting_product = interesting_product_crud.get_one(
+        db, InterestingProduct.id == id)
+    if interesting_product is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Interesting product with id {id} not found",
         )
 
     try:
-        # Check if category exists if being updated
-        if product_update.category_id:
-            category = product_category_crud.get_one(
-                db, id=product_update.category_id)
-            if not category:
+        old_alternative_products = interesting_product.alternative_products
+        dict_interesting_product_update = interesting_product_update.model_dump(
+            exclude_unset=True
+        )  # exclude_unset=True -
+        # do not update fields with None
+        alternative_product_ids = dict_interesting_product_update['alternative_products']
+        interesting_product = interesting_product_crud.update(
+            db, interesting_product, InterestingProductInsert(
+                **dict_interesting_product_update))
+        for old_alternative_product in old_alternative_products:
+            if old_alternative_product.id not in alternative_product_ids:
+                old_alternative_product.interesting_product_id = None
+        for alternative_id in alternative_product_ids:
+            product = product_crud.get_one(db, Product.id == alternative_id)
+            if product is None:
                 raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"Category with id {product_update.category_id} does not exist",
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"Product with id {alternative_id} not found",
                 )
-
-        product = interesting_product_crud.update(db, product, product_update)
+            product = product_crud.update(
+                db, product, ProductUpdate(ean=product.ean, interesting_product_id=interesting_product.id), active_user)
     except HTTPException:
         raise
     except IntegrityError as e:
@@ -271,7 +292,12 @@ def update_interesting_product(
         if "foreign key constraint" in error_message.lower() and "category_id" in error_message.lower():
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Category with id {product_update.category_id} does not exist",
+                detail=f"Category with id {interesting_product_update.category_id} does not exist",
+            ) from e
+        elif "foreign key constraint" in error_message.lower() and "brand_id" in error_message.lower():
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Brand with id {interesting_product_update.brand_id} does not exist",
             ) from e
         else:
             raise HTTPException(
@@ -283,7 +309,7 @@ def update_interesting_product(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Couldn't update interesting product with id {id}. Error: {str(e)}",
         ) from e
-    return product
+    return interesting_product
 
 
 @router.delete("/{id}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(RoleChecker(["contributor", "admin"]))])
@@ -355,7 +381,7 @@ def upload_interesting_product_image(
             product, file_service.interesting_products_dir, file)
 
         # Update the product with the new image path
-        product_update = InterestingProductUpdate(image=image_path)
+        product_update = InterestingProductUploadImage(image=image_path)
         updated_product = interesting_product_crud.update(
             db, product, product_update)
 
@@ -396,7 +422,7 @@ def delete_interesting_product_image(
             file_service.delete_image(product.image)
 
         # Update the product to remove the image path
-        product_update = InterestingProductUpdate(image=None)
+        product_update = InterestingProductUploadImage(image=None)
         interesting_product_crud.update(db, product, product_update)
 
     except Exception as e:
@@ -404,5 +430,3 @@ def delete_interesting_product_image(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error deleting image: {str(e)}"
         ) from e
-
-

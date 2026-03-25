@@ -32,7 +32,7 @@ def fetch_all_checkings(db: Session = Depends(get_db)) -> List[Optional[Checking
     Returns:
         List[Optional[CheckingOut]]: The list of checkings fetched from the database.
     """
-    
+
     return checking_crud.get_all(db)
 
 
@@ -62,11 +62,11 @@ def fetch_paginated_checkings(
     page, size = pagination_params
     sortby, descending = orderby_params
     checkings, total = checking_crud.get_many(
-        db, 
-        skip=page, 
-        limit=size, 
-        order_by=sortby, 
-        descending=descending, 
+        db,
+        skip=page,
+        limit=size,
+        order_by=sortby,
+        descending=descending,
         **filter_params.model_dump(exclude_none=True)
     )
     pages = (total + size - 1) // size
@@ -176,7 +176,7 @@ def create_checking(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Couldn't create checking. Error: {str(e)}",
-        ) from e 
+        ) from e
     return checking
 
 
@@ -236,11 +236,11 @@ def update_checking(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"Data integrity error: {error_message}",
             ) from e
-    except Exception as e:  
+    except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Couldn't update checking with id {id}. Error: {str(e)}",
-        ) from e  
+        ) from e
     return checking
 
 
@@ -282,7 +282,7 @@ def delete_checking(
         )
     try:
         checking_crud.delete(db, checking)
-    except Exception as e:  
+    except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Couldn't delete checking with id {id}. Error: {str(e)}",

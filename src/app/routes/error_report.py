@@ -17,9 +17,9 @@ router = APIRouter()
 
 
 @router.get(
-    "/", 
-    response_model=List[Optional[ErrorReportOut]], 
-    status_code=status.HTTP_200_OK, 
+    "/",
+    response_model=List[Optional[ErrorReportOut]],
+    status_code=status.HTTP_200_OK,
     dependencies=[Depends(get_current_active_user)]
 )
 def fetch_all_error_reports(db: Session = Depends(get_db)) -> List[Optional[ErrorReportOut]]:
@@ -39,9 +39,9 @@ def fetch_all_error_reports(db: Session = Depends(get_db)) -> List[Optional[Erro
 
 
 @router.get(
-    "/count", 
-    response_model=Optional[ErrorReportOutCount], 
-    status_code=status.HTTP_200_OK, 
+    "/count",
+    response_model=Optional[ErrorReportOutCount],
+    status_code=status.HTTP_200_OK,
     dependencies=[Depends(get_current_active_user)]
 )
 def fetch_count_error_reports(
@@ -71,9 +71,9 @@ def fetch_count_error_reports(
 
 
 @router.get(
-    "/search", 
-    response_model=Optional[ErrorReportOutPaginated], 
-    status_code=status.HTTP_200_OK, 
+    "/search",
+    response_model=Optional[ErrorReportOutPaginated],
+    status_code=status.HTTP_200_OK,
     dependencies=[Depends(get_current_active_user)]
 )
 def fetch_paginated_error_reports(
@@ -99,10 +99,10 @@ def fetch_paginated_error_reports(
     page, size = pagination_params
     sortby, descending = orderby_params
     error_reports, total = error_report_crud.get_many(
-        db, 
-        skip=page, 
-        limit=size, 
-        order_by=sortby, 
+        db,
+        skip=page,
+        limit=size,
+        order_by=sortby,
         descending=descending,
         **filter_params.model_dump(exclude_none=True)
     )
@@ -200,7 +200,7 @@ def create_error_report(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Couldn't create error report. Error: {str(e)}",
-        ) from e 
+        ) from e
     return error_report
 
 
@@ -241,18 +241,19 @@ def update_error_report(
         )
 
     try:
-        error_report = error_report_crud.update(db, error_report, error_report_update)
-    except Exception as e:  
+        error_report = error_report_crud.update(
+            db, error_report, error_report_update)
+    except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Couldn't update error report with id {id}. Error: {str(e)}",
-        ) from e  
+        ) from e
     return error_report
 
 
-@router.delete("/{id}", 
-    status_code=status.HTTP_204_NO_CONTENT, 
-    dependencies=[Depends(RoleChecker(["contributor", "admin"]))])
+@router.delete("/{id}",
+               status_code=status.HTTP_204_NO_CONTENT,
+               dependencies=[Depends(RoleChecker(["contributor", "admin"]))])
 def delete_error_report(
     id: int,
     db: Session = Depends(get_db)
@@ -284,7 +285,7 @@ def delete_error_report(
 
     try:
         error_report_crud.delete(db, error_report)
-    except Exception as e:  
+    except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Couldn't delete error report with id {id}. Error: {str(e)}",
