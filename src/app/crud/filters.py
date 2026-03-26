@@ -1,5 +1,5 @@
 from typing import Type, TypeVar, Tuple, Dict
-from sqlalchemy.sql import operators
+from sqlalchemy.sql import operators, any_
 from sqlalchemy import extract, func
 from sqlalchemy.orm import Query, RelationshipProperty, aliased
 
@@ -21,6 +21,7 @@ OPERATOR_MAPPING = {
     'iin': lambda c, v: func.lower(c).in_([item.lower() for item in v]) if v else True,
     'notin': operators.notin_op,
     'between': lambda c, v: c.between(v[0], v[1]),
+    'any': lambda c, v:  v == any_(c),  # at least v is in c
 
     'like': operators.like_op,
     'ilike': operators.ilike_op,

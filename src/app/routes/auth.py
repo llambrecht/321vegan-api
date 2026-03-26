@@ -38,7 +38,7 @@ def login_for_access_token(
 
     Returns:
         - Dict[str, Any]: A dictionary containing the access token and token type.
-    
+
     Raises:
         HTTPException: If the user with the provided username and password is not found in the database.
         HTTPException: If the user is inactive.
@@ -56,7 +56,8 @@ def login_for_access_token(
             status_code=status.HTTP_400_BAD_REQUEST, detail="Inactive user"
         )
 
-    access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token_expires = timedelta(
+        minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = security.create_access_token(
         subject=user.id, expires_delta=access_token_expires
     )
@@ -82,7 +83,7 @@ def user_refresh(db: Session = Depends(get_db), refresh_token: Optional[str] = C
 
     Returns:
         - Dict[str, Any]: A dictionary containing the access token and token type.
-    
+
     Raises:
         HTTPException: If the refresh_token is not provided
         HTTPException: If the refresh_token is invalid
@@ -107,8 +108,9 @@ def user_refresh(db: Session = Depends(get_db), refresh_token: Optional[str] = C
         raise _get_credential_exception(
             details="Inactive user",
         )
-    
-    access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+
+    access_token_expires = timedelta(
+        minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = security.create_access_token(
         subject=user.id, expires_delta=access_token_expires
     )
@@ -126,7 +128,7 @@ def user_logout(response: Response, token: TokenPayload = Depends(get_token), re
 
     Returns:
         - Dict[str, str]: A dictionary containing the confirmation user successfully logged out.
-    
+
     Raises:
         HTTPException: If the refresh_token is not provided
         HTTPException: If the refresh_token is invalid
@@ -161,29 +163,29 @@ def request_password_reset(
 
     Returns:
         Dict[str, str]: A confirmation message.
-    
+
     Note:
         This endpoint always returns success for security reasons, 
         even if the email doesn't exist in the database.
     """
     user = user_crud.get_user_by_email(db, request.email)
-    
+
     if user and user_crud.is_active_user(user):
         reset_token = user_crud.create_password_reset_token(db, request.email)
-        
+
         if reset_token:
             email_sent = email_service.send_password_reset_email(
                 email=user.email,
                 reset_token=reset_token,
                 user_nickname=user.nickname
             )
-            
+
             if not email_sent:
                 raise HTTPException(
                     status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                     detail="Failed to send reset email. Please try again later."
                 )
-    
+
     return {
         "detail": "If the email exists in our system, you will receive password reset instructions."
     }
@@ -203,27 +205,28 @@ def confirm_password_reset(
 
     Returns:
         Dict[str, str]: A confirmation message.
-    
+
     Raises:
         HTTPException: If the reset token is invalid or expired.
         HTTPException: If the new password doesn't meet security requirements.
     """
     # Validate password strength
-    is_valid, error_messages = security.validate_password_strength(request.new_password)
+    is_valid, error_messages = security.validate_password_strength(
+        request.new_password)
     if not is_valid:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail={"errors": error_messages}
         )
-    
+
     user = user_crud.reset_password(db, request.token, request.new_password)
-    
+
     if not user:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid or expired reset token."
         )
-    
+
     return {"detail": "Password has been reset successfully. You can now log in with your new password."}
 
 
@@ -241,19 +244,20 @@ def verify_reset_token(
 
     Returns:
         Dict[str, str]: A confirmation message.
-    
+
     Raises:
         HTTPException: If the reset token is invalid or expired.
     """
     user = user_crud.verify_reset_token(db, request.token)
-    
+
     if not user:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid or expired reset token."
         )
-    
+
     return {"detail": "Reset token is valid.", "email": user.email}
+
 
 @router.get("/me", response_model=UserOut, status_code=status.HTTP_200_OK)
 def read_current_user(
@@ -271,6 +275,7 @@ def read_current_user(
         User: The current user's information with scan summary.
     """
     # Get scan summary for the user
-    current_user.scanned_products = scan_event_crud.get_user_scan_summary(db, current_user.id)
-    
+    current_user.scanned_products = scan_event_crud.get_user_scan_summary(
+        db, current_user.id)
+
     return current_user

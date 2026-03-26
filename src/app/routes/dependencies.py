@@ -16,9 +16,11 @@ from app.schemas.auth import TokenPayload, ApiKeyPayload
 
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
-optional_oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login", auto_error=False)
+optional_oauth2_scheme = OAuth2PasswordBearer(
+    tokenUrl="auth/login", auto_error=False)
 x_api_key_scheme = APIKeyHeader(name="x-api-key")
 optional_x_api_key_scheme = APIKeyHeader(name="x-api-key", auto_error=False)
+
 
 def get_pagination_params(
     page: int = Query(1, ge=1), page_size: int = Query(5, ge=1, le=100)
@@ -72,7 +74,8 @@ def get_token(token: str = Depends(oauth2_scheme)) -> TokenPayload:
         )
         token_data = TokenPayload(**payload)
     except (jwt.JWTError, ValidationError) as e:
-        raise _get_credential_exception(status_code=status.HTTP_401_UNAUTHORIZED) from e
+        raise _get_credential_exception(
+            status_code=status.HTTP_401_UNAUTHORIZED) from e
     return token_data
 
 
@@ -167,7 +170,8 @@ def get_api_key(api_key: str | None = Security(x_api_key_scheme)) -> ApiKeyPaylo
             )
         key_data = ApiKeyPayload(**{"api_key": api_key})
     except Exception as e:
-        raise _get_credential_exception(status_code=status.HTTP_401_UNAUTHORIZED) from e
+        raise _get_credential_exception(
+            status_code=status.HTTP_401_UNAUTHORIZED) from e
     return key_data
 
 
@@ -232,14 +236,15 @@ def get_optional_token(token: str | None = Security(optional_oauth2_scheme)) -> 
         HTTPException: If there is an error decoding the token or validating the payload.
     """
     if not token:
-      return None
+        return None
     try:
         payload = jwt.decode(
             token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]
         )
         token_data = TokenPayload(**payload)
     except (jwt.JWTError, ValidationError) as e:
-        raise _get_credential_exception(status_code=status.HTTP_401_UNAUTHORIZED) from e
+        raise _get_credential_exception(
+            status_code=status.HTTP_401_UNAUTHORIZED) from e
     return token_data
 
 
@@ -257,11 +262,12 @@ def get_optional_api_key(api_key: str | None = Security(optional_x_api_key_schem
         HTTPException: If there is an error retrieving the api key or validating the payload.
     """
     if not api_key:
-      return None
+        return None
     try:
         key_data = ApiKeyPayload(**{"api_key": api_key})
     except Exception as e:
-        raise _get_credential_exception(status_code=status.HTTP_401_UNAUTHORIZED) from e
+        raise _get_credential_exception(
+            status_code=status.HTTP_401_UNAUTHORIZED) from e
     return key_data
 
 
@@ -280,7 +286,7 @@ def get_current_user_or_client(db: Session = Depends(get_db), token: TokenPayloa
     Raises:
         HTTPException: If there is no token or no api key
         HTTPException: If the user or api client is not found
-    """  
+    """
     if token:
         user = user_crud.get_one(db, User.id == token.sub)
         if user is None:
@@ -328,7 +334,8 @@ def get_current_active_user_or_client(db: Session = Depends(get_db), token: Toke
             )
         return current_user
     if api_key:
-        current_client = apiclient_crud.get_one(db, ApiClient.api_key == api_key.api_key)
+        current_client = apiclient_crud.get_one(
+            db, ApiClient.api_key == api_key.api_key)
         if current_client is None:
             raise _get_credential_exception(
                 status_code=status.HTTP_404_NOT_FOUND, details="Client not found"
@@ -378,7 +385,8 @@ def get_admin_or_client(db: Session = Depends(get_db), token: TokenPayload | Non
             )
         return current_user
     if api_key:
-        current_client = apiclient_crud.get_one(db, ApiClient.api_key == api_key.api_key)
+        current_client = apiclient_crud.get_one(
+            db, ApiClient.api_key == api_key.api_key)
         if current_client is None:
             raise _get_credential_exception(
                 status_code=status.HTTP_404_NOT_FOUND, details="Client not found"
@@ -395,7 +403,7 @@ def get_admin_or_client(db: Session = Depends(get_db), token: TokenPayload | Non
 class RoleChecker:
     """
     Checker for routes role based access.
-    
+
     Parameters:
             allowed_roles (List[str]): The required roles to access to the endpoint.
 
@@ -407,7 +415,7 @@ class RoleChecker:
     def __init__(self, allowed_roles: List[str]):
         self.allowed_roles = allowed_roles
 
-    def __call__(self, user: User = Depends(get_current_active_user)):  
+    def __call__(self, user: User = Depends(get_current_active_user)):
         """
         Checks if the current user has access to endpoint.
 

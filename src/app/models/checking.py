@@ -11,6 +11,7 @@ class CheckingStatus(str, enum.Enum):
     NON_VEGAN = "NON_VEGAN"
     MAYBE_VEGAN = "MAYBE_VEGAN"
 
+
 class Checking(Base):
     __tablename__ = "checkings"
 
@@ -21,7 +22,9 @@ class Checking(Base):
     responded_on = Column(DateTime, nullable=True)
     status = Column(Enum(CheckingStatus), default=CheckingStatus.PENDING)
     response = Column(Text)
-    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    user_id = Column(Integer, ForeignKey(
+        "users.id", ondelete="CASCADE"), nullable=False)
     user = relationship("User", back_populates="checkings")
-    product_id = Column(Integer, ForeignKey("products.id", ondelete="CASCADE"), nullable=False)
+    product_id = Column(Integer, ForeignKey(
+        "products.id", ondelete="CASCADE"), nullable=False)
     product = relationship("Product", back_populates="checkings")

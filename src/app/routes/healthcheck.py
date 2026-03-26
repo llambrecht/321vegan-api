@@ -8,6 +8,7 @@ from sqlalchemy import text
 
 router = APIRouter()
 
+
 @router.get("/", status_code=status.HTTP_200_OK)
 def healthcheck(db: Session = Depends(get_db)):
     """

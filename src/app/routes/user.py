@@ -32,7 +32,7 @@ def fetch_all_users(
 
     Parameters:
         db (Session): The database session.
-    
+
     Returns:
         List[Optional[UserOut]]: A list of user objects,
             or None if there are no users.
@@ -41,7 +41,7 @@ def fetch_all_users(
         HTTPException: If the user does not have enough
             permissions to access to this endpoint.
     """
-    
+
     return user_crud.get_all(db)
 
 
@@ -69,14 +69,14 @@ def fetch_paginated_users(
         HTTPException: If the user does not have enough
             permissions to access to this endpoint.
     """
-    
+
     page, size = pagination_params
     sortby, descending = orderby_params
     users, total = user_crud.get_many(
-        db, 
-        skip=page, 
-        limit=size, 
-        order_by=sortby, 
+        db,
+        skip=page,
+        limit=size,
+        order_by=sortby,
         descending=descending,
         **filter_params.model_dump(exclude_none=True)
     )
@@ -191,10 +191,10 @@ def create_user(
             **dict_user_create,
         )
         user = user_crud.create(db, user_in)
-        
+
     except IntegrityError as e:
         error_message = str(e.orig)
-        if "unique constraint" in error_message.lower(): 
+        if "unique constraint" in error_message.lower():
             if "email" in error_message.lower():
                 raise HTTPException(
                     status_code=status.HTTP_409_CONFLICT,
@@ -209,7 +209,7 @@ def create_user(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Couldn't create user. Error: {str(e)}",
-        ) from e 
+        ) from e
     return user
 
 
@@ -259,15 +259,19 @@ def delete_user(
                 detail="You can only delete your own account",
             )
     try:
-        db.query(Product).filter(Product.last_modified_by == id).update({Product.last_modified_by: None})
-        db.query(ErrorReport).filter(ErrorReport.created_by == id).update({ErrorReport.created_by: None})
-        db.query(ScanEvent).filter(ScanEvent.user_id == id).update({ScanEvent.user_id: None})
+        db.query(Product).filter(Product.last_modified_by ==
+                                 id).update({Product.last_modified_by: None})
+        db.query(ErrorReport).filter(ErrorReport.created_by ==
+                                     id).update({ErrorReport.created_by: None})
+        db.query(ScanEvent).filter(ScanEvent.user_id ==
+                                   id).update({ScanEvent.user_id: None})
         user_crud.delete(db, user)
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Couldn't delete user with id {id}. Error: {str(e)}",
         ) from e
+
 
 @router.put("/{id}", response_model=UserOut, status_code=status.HTTP_200_OK, dependencies=[Depends(RoleChecker(["admin"]))])
 def update_user(
@@ -302,7 +306,7 @@ def update_user(
         user = user_crud.update(db, user, user_update)
     except IntegrityError as e:
         error_message = str(e.orig)
-        if "unique constraint" in error_message.lower(): 
+        if "unique constraint" in error_message.lower():
             if "email" in error_message.lower():
                 raise HTTPException(
                     status_code=status.HTTP_409_CONFLICT,
@@ -351,19 +355,19 @@ def patch_user(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"User with id {id} not found. Cannot update.",
         )
-    
+
     # Hash password if it's being updated
     update_data = user_patch.model_dump(exclude_unset=True)
     if "password" in update_data:
         update_data["password"] = get_password_hash(update_data["password"])
         # Create a new UserPatch with the hashed password
         user_patch = UserPatch(**update_data)
-    
+
     try:
         user = user_crud.update(db, user, user_patch)
     except IntegrityError as e:
         error_message = str(e.orig)
-        if "unique constraint" in error_message.lower(): 
+        if "unique constraint" in error_message.lower():
             if "email" in error_message.lower():
                 raise HTTPException(
                     status_code=status.HTTP_409_CONFLICT,

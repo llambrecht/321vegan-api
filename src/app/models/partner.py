@@ -1,7 +1,9 @@
-from sqlalchemy import Column, Integer, String, Boolean, Text, DateTime, ForeignKey
-from sqlalchemy.orm import relationship
 from datetime import datetime
+from sqlalchemy import Column, Integer, String, Boolean, Text, DateTime, ForeignKey, select
+from sqlalchemy.orm import relationship
+from sqlalchemy.ext.hybrid import hybrid_property
 from app.database.base_class import Base
+from app.models.partner_category import PartnerCategory
 
 
 class Partner(Base):
@@ -19,7 +21,24 @@ class Partner(Base):
     is_affiliate = Column(Boolean, default=False, nullable=False)
     show_code_in_website = Column(Boolean, default=False, nullable=False)
     is_active = Column(Boolean, default=True, nullable=False)
-    category_id = Column(Integer, ForeignKey("partner_categories.id"), nullable=True)
+    category_id = Column(Integer, ForeignKey(
+        "partner_categories.id"), nullable=True)
 
     # Relationship with category
     category = relationship("PartnerCategory", back_populates="partners")
+
+    @hybrid_property
+    def category_name(self) -> str | None:
+        if self.category:
+            return self.category.name
+        else:
+            return None
+
+    @category_name.inplace.expression
+    @classmethod
+    def _category_name_expression(cls):
+        return (
+            select(PartnerCategory.name)
+            .where(PartnerCategory.id == cls.category_id)
+            .as_scalar()
+        )

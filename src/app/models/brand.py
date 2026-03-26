@@ -19,9 +19,11 @@ class Brand(Base):
     boycott = Column(Boolean, default=False, nullable=True)
     background = Column(Text)
     parent_id = Column(Integer, ForeignKey("brands.id"), nullable=True)
-    children = relationship("Brand", back_populates="parent")
     parent = relationship("Brand", back_populates="children", remote_side=[id])
+    children = relationship("Brand", back_populates="parent")
     products = relationship("Product", back_populates="brand")
+    interesting_products = relationship(
+        "InterestingProduct", back_populates="brand")
 
     @property
     def root_email(self) -> str | None:

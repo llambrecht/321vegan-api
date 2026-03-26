@@ -4,6 +4,7 @@ from sqlalchemy.ext.hybrid import hybrid_property
 from datetime import datetime
 from app.database.base_class import Base
 
+
 class ErrorReport(Base):
     __tablename__ = "error_reports"
 
@@ -14,13 +15,13 @@ class ErrorReport(Base):
     comment = Column(String, nullable=False)
     contact = Column(String, nullable=True)
     handled = Column(Boolean, default=False)
-    created_by = Column(Integer, ForeignKey("users.id"), nullable=True)
-    
+    created_by = Column(Integer, ForeignKey(
+        "users.id"), nullable=True)
+
     # relationships
     user = relationship("User", back_populates="error_reports")
     # orm only foreignkey
     product = relationship(
-        'Product', 
+        'Product',
         primaryjoin="foreign(ErrorReport.ean) == Product.ean"
     )
-

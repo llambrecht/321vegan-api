@@ -63,10 +63,10 @@ def fetch_paginated_scan_events(
     sortby, descending = orderby_params
     filters = filter_params.model_dump(exclude_none=True)
     events, total = scan_event_crud.get_many(
-        db, 
-        skip=page, 
-        limit=size, 
-        order_by=sortby, 
+        db,
+        skip=page,
+        limit=size,
+        order_by=sortby,
         descending=descending,
         filters=filters
     )
@@ -84,7 +84,7 @@ def fetch_paginated_scan_events(
     "/by-ean/{ean}", response_model=List[Optional[ScanEventOut]], status_code=status.HTTP_200_OK
 )
 def fetch_scan_events_by_ean(
-    ean: str, 
+    ean: str,
     limit: int = Query(default=100, ge=1, le=1000),
     db: Session = Depends(get_db)
 ) -> List[Optional[ScanEventOut]]:
@@ -156,11 +156,12 @@ async def create_scan_event(
         ),
     ],
     db: Session = Depends(get_db),
-    current_user_or_client: User | ApiClient = Depends(get_current_active_user_or_client),
+    current_user_or_client: User | ApiClient = Depends(
+        get_current_active_user_or_client),
 ):
     """
     Create a scan event.
-    
+
     If latitude/longitude are provided and no shop_id is set :
     1. Check if a shop exists within 100 meters
     2. If not, query OpenStreetMap for nearby shops (also 100 meters)
@@ -217,7 +218,8 @@ async def create_scan_event(
                 # Return OSM shops as-is (not created in DB yet).
                 # The closest one is linked only if it already exists in our DB.
                 for osm_shop_data in osm_shops_data:
-                    existing_osm_shop = shop_crud.get_by_osm_id(db, osm_shop_data["osm_id"])
+                    existing_osm_shop = shop_crud.get_by_osm_id(
+                        db, osm_shop_data["osm_id"])
                     if existing_osm_shop:
                         nearby_shops.append(existing_osm_shop)
                     else:
@@ -284,7 +286,8 @@ async def create_scan_event(
         # so the old app can still ask "Are you in [shop_name]?"
         if not response.shop_name and nearby_shops:
             first = nearby_shops[0]
-            response.shop_name = first.get("name") if isinstance(first, dict) else first.name
+            response.shop_name = first.get("name") if isinstance(
+                first, dict) else first.name
     return response
 
 
@@ -297,7 +300,8 @@ def update_scan_event(
     id: int,
     event_update: ScanEventUpdate,
     db: Session = Depends(get_db),
-    current_user_or_client: User | ApiClient = Depends(get_current_active_user_or_client),
+    current_user_or_client: User | ApiClient = Depends(
+        get_current_active_user_or_client),
 ):
     """
     Update a scan event by its ID.
@@ -322,7 +326,7 @@ def update_scan_event(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Scan event with id {id} not found",
         )
-    
+
     try:
         event = scan_event_crud.update(db, event, event_update)
     except IntegrityError as e:
@@ -337,11 +341,11 @@ def update_scan_event(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"Data integrity error: {error_message}",
             ) from e
-    except Exception as e:  
+    except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Couldn't update scan event with id {id}. Error: {str(e)}",
-        ) from e  
+        ) from e
     return event
 
 
@@ -354,7 +358,8 @@ def confirm_shop(
     id: int,
     body: ConfirmShopRequest,
     db: Session = Depends(get_db),
-    current_user_or_client: User | ApiClient = Depends(get_current_active_user_or_client),
+    current_user_or_client: User | ApiClient = Depends(
+        get_current_active_user_or_client),
 ):
     """
     Confirm which shop the user is in by osm_id.
@@ -378,7 +383,8 @@ def confirm_shop(
     # Check if this shop already exists in DB
     existing_shop = shop_crud.get_by_osm_id(db, body.osm_id)
     if existing_shop:
-        event = scan_event_crud.update(db, event, ScanEventUpdate(shop_id=existing_shop.id))
+        event = scan_event_crud.update(
+            db, event, ScanEventUpdate(shop_id=existing_shop.id))
         return event
 
     # Find the OSM data from the stored lookup response
@@ -389,7 +395,8 @@ def confirm_shop(
         )
 
     osm_shops_data = json.loads(event.lookup_api_response)
-    osm_shop_data = next((s for s in osm_shops_data if s.get("osm_id") == body.osm_id), None)
+    osm_shop_data = next(
+        (s for s in osm_shops_data if s.get("osm_id") == body.osm_id), None)
 
     if osm_shop_data is None:
         raise HTTPException(
@@ -410,7 +417,8 @@ def confirm_shop(
                 detail="Failed to create shop",
             )
 
-    event = scan_event_crud.update(db, event, ScanEventUpdate(shop_id=new_shop.id))
+    event = scan_event_crud.update(
+        db, event, ScanEventUpdate(shop_id=new_shop.id))
     return event
 
 
@@ -441,7 +449,7 @@ def delete_scan_event(
         )
     try:
         scan_event_crud.delete(db, event)
-    except Exception as e:  
+    except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Couldn't delete scan event with id {id}. Error: {str(e)}",

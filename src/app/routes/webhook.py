@@ -24,7 +24,8 @@ async def apple_webhook(
     Apple sends a signed JWS payload with subscription events.
     """
     try:
-        success = subscription_service.process_apple_webhook(body.signedPayload, db)
+        success = subscription_service.process_apple_webhook(
+            body.signedPayload, db)
         if not success:
             log.warning("Apple webhook processing returned failure")
         return {"status": "ok"}
@@ -44,7 +45,8 @@ async def google_webhook(
     Google sends a Pub/Sub message with base64-encoded subscription data.
     """
     try:
-        decoded = json.loads(base64.b64decode(body.message.data).decode("utf-8"))
+        decoded = json.loads(base64.b64decode(
+            body.message.data).decode("utf-8"))
 
         success = subscription_service.process_google_webhook(decoded, db)
         if not success:
