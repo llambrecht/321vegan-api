@@ -15,3 +15,5 @@ from app.models.additive import Additive
 from app.models.partner import Partner
 from app.models.partner_category import PartnerCategory
 from app.models.subscription import Subscription, SubscriptionEvent, SubscriptionPlatform, SubscriptionStatus, SubscriptionEventType
+from app.models.product_not_found_report import ProductNotFoundReport
+from app.models.shop_review import ShopReview, ShopReviewStatus

@@ -57,6 +57,9 @@ class ShopScanSummaryOut(BaseModel):
     ean: str
     scan_count: int
     last_scanned_at: datetime
+    not_found_count: int = 0
+    last_not_found_at: Optional[datetime] = None
+    presence_score: float = 0.0
 
     class Config:
         from_attributes = True

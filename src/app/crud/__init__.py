@@ -13,6 +13,8 @@ from app.crud.partner import partner_crud
 from app.crud.partner_category import partner_category_crud
 from app.crud import scoring
 from app.crud.subscription import subscription_crud
+from app.crud.product_not_found_report import product_not_found_report_crud
+from app.crud.shop_review import shop_review_crud
 
 __all__ = [
     "user_crud",
@@ -30,4 +32,6 @@ __all__ = [
     "partner_category_crud",
     "scoring",
     "subscription_crud",
+    "product_not_found_report_crud",
+    "shop_review_crud",
 ]

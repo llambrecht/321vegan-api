@@ -37,6 +37,8 @@ from app.routes import (
     partner_category_router,
     subscription_router,
     webhook_router,
+    product_not_found_report_router,
+    shop_review_router,
 )
 from app.log import get_logger
 
@@ -112,6 +114,8 @@ app.include_router(partner_router, prefix="/partners", tags=["partner"])
 app.include_router(partner_category_router, prefix="/partner-categories", tags=["partner_category"])
 app.include_router(subscription_router, prefix="/subscriptions", tags=["subscription"])
 app.include_router(webhook_router, prefix="/webhooks", tags=["webhook"])
+app.include_router(product_not_found_report_router, prefix="/product-not-found-reports", tags=["product_not_found_report"])
+app.include_router(shop_review_router, prefix="/shop-reviews", tags=["shop_review"])
 
 # Serve static files
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
