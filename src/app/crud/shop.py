@@ -1,9 +1,11 @@
 from typing import Optional, List, Tuple
+from datetime import datetime
 from sqlalchemy.orm import Session
-from sqlalchemy import func, or_, distinct
+from sqlalchemy import func, distinct
 from app.crud.base import CRUDRepository
 from app.models.shop import Shop
 from app.models.scan_event import ScanEvent
+from app.models.product_not_found_report import ProductNotFoundReport
 import math
 
 
@@ -188,16 +190,25 @@ class ShopCRUDRepository(CRUDRepository):
 
     def get_shop_scan_summary(self, db: Session, shop_id: int) -> List[dict]:
         """
-        Get distinct EANs scanned at a shop with scan count and last scan date.
+        Get distinct EANs scanned at a shop with scan count, last scan date,
+        not-found report stats, and a computed presence score.
+
+        Only not-found reports that occurred AFTER the last scan for that EAN
+        are considered relevant (a scan after a report proves restocking).
 
         Parameters:
             db (Session): The database session.
             shop_id (int): The shop ID.
 
         Returns:
-            List[dict]: List of dicts with ean, scan_count, last_scanned_at.
+            List[dict]: List of dicts with ean, scan_count, last_scanned_at,
+                        not_found_count, last_not_found_at, presence_score.
         """
-        results = (
+        from sqlalchemy import and_
+        from sqlalchemy.dialects.postgresql import array_agg
+
+        # Subquery 1: scan stats per EAN
+        scan_subq = (
             db.query(
                 ScanEvent.ean,
                 func.count(ScanEvent.id).label("scan_count"),
@@ -205,18 +216,90 @@ class ShopCRUDRepository(CRUDRepository):
             )
             .filter(ScanEvent.shop_id == shop_id)
             .group_by(ScanEvent.ean)
-            .order_by(func.max(ScanEvent.date_created).desc())
+            .subquery()
+        )
+
+        # Subquery 2: not-found report stats per EAN, only reports after last scan
+        report_subq = (
+            db.query(
+                ProductNotFoundReport.ean,
+                func.count(ProductNotFoundReport.id).label("not_found_count"),
+                func.max(ProductNotFoundReport.date_created).label("last_not_found_at"),
+                array_agg(ProductNotFoundReport.date_created).label("report_dates"),
+            )
+            .join(
+                scan_subq,
+                and_(
+                    scan_subq.c.ean == ProductNotFoundReport.ean,
+                    ProductNotFoundReport.date_created > scan_subq.c.last_scanned_at,
+                ),
+            )
+            .filter(ProductNotFoundReport.shop_id == shop_id)
+            .group_by(ProductNotFoundReport.ean)
+            .subquery()
+        )
+
+        # Join scan stats with report stats
+        results = (
+            db.query(
+                scan_subq.c.ean,
+                scan_subq.c.scan_count,
+                scan_subq.c.last_scanned_at,
+                func.coalesce(report_subq.c.not_found_count, 0).label("not_found_count"),
+                report_subq.c.last_not_found_at,
+                report_subq.c.report_dates,
+            )
+            .outerjoin(report_subq, report_subq.c.ean == scan_subq.c.ean)
+            .order_by(scan_subq.c.last_scanned_at.desc())
             .all()
         )
 
-        return [
-            {
+        now = datetime.now()
+        summaries = []
+
+        for row in results:
+            report_dates = [d for d in (row.report_dates or []) if d is not None]
+
+            presence_score = self._compute_presence_score(
+                now, row.last_scanned_at, row.scan_count, report_dates,
+            )
+
+            summaries.append({
                 "ean": row.ean,
                 "scan_count": row.scan_count,
                 "last_scanned_at": row.last_scanned_at,
-            }
-            for row in results
-        ]
+                "not_found_count": row.not_found_count,
+                "last_not_found_at": row.last_not_found_at,
+                "presence_score": round(presence_score, 2),
+            })
+
+        return summaries
+
+    @staticmethod
+    def _compute_presence_score(
+        now: datetime,
+        last_scanned_at: datetime,
+        scan_count: int,
+        report_dates: list[datetime],
+    ) -> float:
+        """
+        Compute a presence score between 0.0 and 1.0.
+
+        - Freshness (60%): decays linearly over 90 days since last scan.
+        - Frequency (40%): scan count capped at 10.
+        - Penalty: each relevant not-found report subtracts up to 0.2,
+          decaying over 30 days.
+        """
+        days_since_scan = (now - last_scanned_at).total_seconds() / 86400
+        freshness = max(0.0, min(1.0, 1.0 - days_since_scan / 90))
+        frequency = max(0.0, min(1.0, scan_count / 10))
+
+        penalty = 0.0
+        for date in report_dates:
+            days_ago = (now - date).total_seconds() / 86400
+            penalty += 0.2 * max(0.0, 1.0 - days_ago / 30)
+
+        return max(0.0, min(1.0, freshness * 0.6 + frequency * 0.4 - penalty))
 
     def get_shops_by_eans(self, db: Session, eans: List[str]) -> List[int]:
         """
