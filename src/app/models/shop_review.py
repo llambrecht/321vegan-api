@@ -1,6 +1,8 @@
 import enum
+from typing import Optional
 from sqlalchemy import Column, Integer, ForeignKey, DateTime, Text, Enum, CheckConstraint, UniqueConstraint
 from sqlalchemy.orm import relationship
+from sqlalchemy.ext.hybrid import hybrid_property
 from datetime import datetime
 from app.database.base_class import Base
 
@@ -29,3 +31,7 @@ class ShopReview(Base):
     # Relationships
     user = relationship("User")
     shop = relationship("Shop", backref="reviews")
+
+    @hybrid_property
+    def user_nickname(self) -> Optional[str]:
+        return self.user.nickname if self.user else None

@@ -68,15 +68,13 @@ def create_review(
 
 
 @router.get(
-    "/search",
-    response_model=ShopReviewOutPaginated,
-    status_code=status.HTTP_200_OK,
+    "/search", response_model=Optional[ShopReviewOutPaginated], status_code=status.HTTP_200_OK,
 )
 def fetch_reviews(
-    filter_params: ShopReviewFilters = Depends(),
     db: Session = Depends(get_db),
     pagination_params: Tuple[int, int] = Depends(get_pagination_params),
     orderby_params: Tuple[str, bool] = Depends(get_sort_by_params),
+    filter_params: ShopReviewFilters = Depends(),
 ) -> ShopReviewOutPaginated:
     """
     Search reviews with filters and pagination.
@@ -95,14 +93,13 @@ def fetch_reviews(
     """
     page, size = pagination_params
     sortby, descending = orderby_params
-    filters = filter_params.model_dump(exclude_none=True)
     reviews, total = shop_review_crud.get_many(
         db,
         skip=page,
         limit=size,
         order_by=sortby,
         descending=descending,
-        filters=filters,
+        **filter_params.model_dump(exclude_none=True)
     )
     pages = (total + size - 1) // size
     return {
