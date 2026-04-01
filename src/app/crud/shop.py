@@ -48,13 +48,13 @@ class ShopCRUDRepository(CRUDRepository):
             filters['id__in'] = shop_ids
         
         return super().get_many(
-            db, 
-            *args, 
-            skip=skip, 
-            limit=limit, 
-            order_by=order_by, 
-            descending=descending, 
-            filters=filters,
+            db,
+            *args,
+            skip=skip,
+            limit=limit,
+            order_by=order_by,
+            descending=descending,
+            **(filters or {}),
             **kwargs
         )
     
