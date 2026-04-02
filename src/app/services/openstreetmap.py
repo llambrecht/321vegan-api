@@ -71,8 +71,9 @@ class OpenStreetMapService:
                 log.warning(f"Overpass API failed ({url}): {type(e).__name__}: {e}")
                 continue
             except Exception as e:
-                log.error(f"Unexpected error in find_nearby_shops ({url}): {type(e).__name__}: {e}")
-                return []
+                last_error = e
+                log.warning(f"Overpass API failed ({url}): {type(e).__name__}: {e}")
+                continue
 
         log.error(f"All Overpass API endpoints failed. Last error: {type(last_error).__name__}: {last_error}")
         return []
