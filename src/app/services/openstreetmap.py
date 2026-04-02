@@ -1,3 +1,4 @@
+import random
 import httpx
 from typing import Dict, Any, List
 from app.log import get_logger
@@ -11,10 +12,11 @@ class OpenStreetMapService:
     OVERPASS_API_URLS = [
         "https://overpass-api.de/api/interpreter",
         "https://overpass.kumi.systems/api/interpreter",
+        "https://overpass.private.coffee/api/interpreter",
     ]
     OVERPASS_QUERY_TIMEOUT = 25  # seconds, server-side timeout
-    TIMEOUT = 30.0  # seconds, HTTP client timeout
-    
+    TIMEOUT = 45.0  # seconds, HTTP client timeout
+
     @staticmethod
     async def find_nearby_shops(latitude: float, longitude: float, radius_meters: int = 100) -> List[Dict[str, Any]]:
         """
@@ -31,8 +33,12 @@ class OpenStreetMapService:
 
         query = f"[out:json][timeout:{OpenStreetMapService.OVERPASS_QUERY_TIMEOUT}];(node(around:{radius_meters},{latitude},{longitude})[\"shop\"~\"^(supermarket|convenience|greengrocer|food|department_store|garden_centre)$\"];way(around:{radius_meters},{latitude},{longitude})[\"shop\"~\"^(supermarket|convenience|greengrocer|food|department_store|garden_centre)$\"];);out center;"
 
+        # Shuffle to distribute load across endpoints rather than always trying the first one
+        urls = OpenStreetMapService.OVERPASS_API_URLS.copy()
+        random.shuffle(urls)
+
         last_error = None
-        for url in OpenStreetMapService.OVERPASS_API_URLS:
+        for url in urls:
             try:
                 async with httpx.AsyncClient(timeout=OpenStreetMapService.TIMEOUT) as client:
                     response = await client.post(
