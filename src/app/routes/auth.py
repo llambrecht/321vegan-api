@@ -73,11 +73,12 @@ def login_for_access_token(
 
 
 @router.post("/refresh", response_model=Token, status_code=status.HTTP_200_OK)
-def user_refresh(db: Session = Depends(get_db), refresh_token: Optional[str] = Cookie(None, alias="refresh_token")) -> Dict[str, Any]:
+def user_refresh(response: Response, db: Session = Depends(get_db), refresh_token: Optional[str] = Cookie(None, alias="refresh_token")) -> Dict[str, Any]:
     """
     Endpoint for user refresh token. Authenticates the user from refresh_token HttpOnly cookie.
 
     Parameters:
+        - response (Response): The Http response.
         - db (Session): The database session.
         - refresh_token (Cookie): The cookie containing the refresh_token.
 
@@ -109,12 +110,21 @@ def user_refresh(db: Session = Depends(get_db), refresh_token: Optional[str] = C
             details="Inactive user",
         )
 
-    access_token_expires = timedelta(
-        minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = security.create_access_token(
         subject=user.id, expires_delta=access_token_expires
     )
-    return {"access_token": access_token,  "token_type": "bearer"}
+
+    refresh_token_expires = timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
+    new_refresh_token = security.create_access_token(
+        subject=user.id, expires_delta=refresh_token_expires
+    )
+    max_age = settings.REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60
+    response.set_cookie(
+        key="refresh_token", value=new_refresh_token, httponly=True, secure=True, samesite="lax", max_age=max_age
+    )
+
+    return {"access_token": access_token, "token_type": "bearer"}
 
 
 @router.get("/logout", status_code=status.HTTP_200_OK)
