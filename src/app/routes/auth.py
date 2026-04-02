@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, timezone
+from datetime import timedelta
 from typing import Any, Dict, Optional
 
 from fastapi import APIRouter, Cookie, Response, Depends, HTTPException, status
@@ -115,19 +115,14 @@ def user_refresh(response: Response, db: Session = Depends(get_db), refresh_toke
         subject=user.id, expires_delta=access_token_expires
     )
 
-    renewal_threshold_days = settings.REFRESH_TOKEN_EXPIRE_DAYS // 3
-    if token_data.exp is not None:
-        seconds_remaining = token_data.exp - datetime.now(timezone.utc).timestamp()
-        days_remaining = seconds_remaining / 86400
-        if days_remaining < renewal_threshold_days:
-            refresh_token_expires = timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
-            new_refresh_token = security.create_access_token(
-                subject=user.id, expires_delta=refresh_token_expires
-            )
-            max_age = settings.REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60
-            response.set_cookie(
-                key="refresh_token", value=new_refresh_token, httponly=True, secure=True, samesite="lax", max_age=max_age
-            )
+    refresh_token_expires = timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
+    new_refresh_token = security.create_access_token(
+        subject=user.id, expires_delta=refresh_token_expires
+    )
+    max_age = settings.REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60
+    response.set_cookie(
+        key="refresh_token", value=new_refresh_token, httponly=True, secure=True, samesite="lax", max_age=max_age
+    )
 
     return {"access_token": access_token, "token_type": "bearer"}
 
