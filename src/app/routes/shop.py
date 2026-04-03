@@ -158,10 +158,11 @@ def fetch_shop_by_id(
 def create_shop(
     shop_in: ShopCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(RoleChecker(["admin"]))
+    current_user: User = Depends(get_current_active_user)
 ) -> ShopOut:
     """
-    Create a new shop.
+    Create a new shop. Any authenticated user can submit a shop.
+    The created_by field is automatically set to the current user's ID.
 
     Parameters:
         shop_in (ShopCreate): The shop data.
@@ -173,7 +174,10 @@ def create_shop(
     """
     try:
         shop = shop_crud.create(db, shop_in)
-        log.info(f"Shop created: {shop.name} (ID: {shop.id})")
+        shop.created_by = current_user.id
+        db.commit()
+        db.refresh(shop)
+        log.info(f"Shop created: {shop.name} (ID: {shop.id}) by user {current_user.id}")
         return shop
     except IntegrityError as e:
         db.rollback()

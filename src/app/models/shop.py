@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, DateTime
+from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey
 from sqlalchemy.sql import func
 from app.database.base_class import Base
 
@@ -20,6 +20,8 @@ class Shop(Base):
     # node or way (relation not searched)
     osm_type = Column(String, nullable=True)
     shop_type = Column(String, nullable=True)  # supermarket, convenience, ...
+    # null = created automatically (e.g. via Overpass API), set = manually created by a user
+    created_by = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
     created_at = Column(DateTime(timezone=True),
                         server_default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), server_default=func.now(

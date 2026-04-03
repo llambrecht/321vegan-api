@@ -33,6 +33,7 @@ class ShopUpdate(BaseModel):
 
 class ShopInDB(ShopBase):
     id: int
+    created_by: Optional[int] = None
     created_at: datetime
     updated_at: datetime
 
