@@ -37,6 +37,7 @@ def fetch_all_shops(db: Session = Depends(get_db)) -> List[Optional[ShopOut]]:
 )
 def fetch_paginated_shops(
     filter_params: ShopFilters = Depends(),
+    ean__in: Optional[List[str]] = Query(default=None),
     db: Session = Depends(get_db),
     pagination_params: Tuple[int, int] = Depends(get_pagination_params),
     orderby_params: Tuple[str, bool] = Depends(get_sort_by_params),
@@ -45,7 +46,8 @@ def fetch_paginated_shops(
     Fetch many shops with pagination and filters.
 
     Parameters:
-        filter_params (ShopFilters): Filter parameters (name, city, country, shop_type, ean__in).
+        filter_params (ShopFilters): Filter parameters (name, city, country, shop_type).
+        ean__in (List[str]): EAN codes to filter by. Supports repeated params or comma-separated values.
         db (Session): The database session.
         pagination_params (Tuple[int, int]): The pagination parameters (skip, limit).
         orderby_params (Tuple[str, bool]): The order by parameters (sortby, descending).
@@ -56,6 +58,11 @@ def fetch_paginated_shops(
     page, size = pagination_params
     sortby, descending = orderby_params
     filters = filter_params.model_dump(exclude_none=True)
+    if ean__in:
+        eans = []
+        for e in ean__in:
+            eans.extend(x.strip() for x in e.split(',') if x.strip())
+        filters['ean__in'] = eans
     shops, total = shop_crud.get_many(
         db,
         skip=page,

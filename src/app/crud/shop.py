@@ -37,9 +37,8 @@ class ShopCRUDRepository(CRUDRepository):
         """
         eans = None
         if filters and 'ean__in' in filters:
-            ean_string = filters.pop('ean__in')
-            eans = [ean.strip() for ean in ean_string.split(',')]
-        
+            eans = filters.pop('ean__in')
+
         if eans:
             shop_ids = self.get_shops_by_eans(db, eans)
             if not shop_ids:
