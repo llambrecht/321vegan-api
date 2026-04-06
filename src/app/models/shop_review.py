@@ -26,7 +26,7 @@ class ShopReview(Base):
     rating = Column(Integer, nullable=False)
     comment = Column(Text, nullable=True)
     status = Column(Enum(ShopReviewStatus), nullable=False, default=ShopReviewStatus.PENDING, index=True)
-    date_created = Column(DateTime, default=datetime.now, nullable=False, index=True)
+    created_at = Column(DateTime, default=datetime.now, nullable=False, index=True)
 
     # Relationships
     user = relationship("User")

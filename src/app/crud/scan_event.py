@@ -21,7 +21,7 @@ class ScanEventCRUDRepository(CRUDRepository):
         """
         return db.query(self._model).filter(
             self._model.ean == ean
-        ).order_by(self._model.date_created.desc()).limit(limit).all()
+        ).order_by(self._model.created_at.desc()).limit(limit).all()
     
     def get_user_scan_summary(self, db: Session, user_id: int) -> list[dict]:
         """

@@ -192,15 +192,8 @@ class CRUDRepository:
 
         total = query.count()
 
-        # Resolve date created column with fallback chain
-        default_order_by = 'id'
-        for candidate in (order_by, "date_created", "created_at"):
-            if hasattr(self._model, candidate):
-                default_order_by = candidate
-                break
-
         # sort by
-        model_attribute = getattr(self._model, order_by, default_order_by)
+        model_attribute = getattr(self._model, order_by, getattr(self._model, 'created_at', self._model.id))
 
         items = query.\
             order_by(desc(model_attribute) if descending else asc(model_attribute)).\
