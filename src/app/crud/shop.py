@@ -211,7 +211,7 @@ class ShopCRUDRepository(CRUDRepository):
             db.query(
                 ScanEvent.ean,
                 func.count(ScanEvent.id).label("scan_count"),
-                func.max(ScanEvent.date_created).label("last_scanned_at"),
+                func.max(ScanEvent.created_at).label("last_scanned_at"),
             )
             .filter(ScanEvent.shop_id == shop_id)
             .group_by(ScanEvent.ean)
@@ -223,14 +223,14 @@ class ShopCRUDRepository(CRUDRepository):
             db.query(
                 ProductNotFoundReport.ean,
                 func.count(ProductNotFoundReport.id).label("not_found_count"),
-                func.max(ProductNotFoundReport.date_created).label("last_not_found_at"),
-                array_agg(ProductNotFoundReport.date_created).label("report_dates"),
+                func.max(ProductNotFoundReport.created_at).label("last_not_found_at"),
+                array_agg(ProductNotFoundReport.created_at).label("report_dates"),
             )
             .join(
                 scan_subq,
                 and_(
                     scan_subq.c.ean == ProductNotFoundReport.ean,
-                    ProductNotFoundReport.date_created > scan_subq.c.last_scanned_at,
+                    ProductNotFoundReport.created_at > scan_subq.c.last_scanned_at,
                 ),
             )
             .filter(ProductNotFoundReport.shop_id == shop_id)

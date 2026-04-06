@@ -8,7 +8,7 @@ class ScanEvent(Base):
     __tablename__ = "scan_events"
 
     id = Column(Integer, primary_key=True, index=True)
-    date_created = Column(DateTime, default=datetime.now, nullable=False)
+    created_at = Column(DateTime, default=datetime.now, nullable=False)
     ean = Column(String, nullable=False, index=True)
     latitude = Column(Float, nullable=True)
     longitude = Column(Float, nullable=True)

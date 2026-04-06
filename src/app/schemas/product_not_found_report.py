@@ -14,7 +14,7 @@ class ProductNotFoundReportOut(BaseModel):
     ean: str
     shop_id: int
     user_id: Optional[int] = None
-    date_created: datetime
+    created_at: datetime
 
     class Config:
         from_attributes = True

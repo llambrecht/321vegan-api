@@ -28,7 +28,7 @@ class ShopReviewOut(BaseModel):
     rating: int
     comment: Optional[str] = None
     status: ShopReviewStatus
-    date_created: datetime
+    created_at: datetime
 
     class Config:
         from_attributes = True

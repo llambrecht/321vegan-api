@@ -50,7 +50,7 @@ class ScanEventUpdate(BaseModel):
 
 class ScanEventInDB(ScanEventBase):
     id: int
-    date_created: datetime
+    created_at: datetime
 
 
 class ScanEventOut(ScanEventInDB):

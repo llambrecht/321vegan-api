@@ -11,7 +11,7 @@ class ProductNotFoundReport(Base):
     ean = Column(String, nullable=False, index=True)
     shop_id = Column(Integer, ForeignKey("shops.id"), nullable=False, index=True)
     user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
-    date_created = Column(DateTime, default=datetime.now, nullable=False, index=True)
+    created_at = Column(DateTime, default=datetime.now, nullable=False, index=True)
 
     # Relationships
     user = relationship("User")

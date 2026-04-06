@@ -25,7 +25,7 @@ class ProductNotFoundReportCRUDRepository(CRUDRepository):
             self._model.ean == ean,
             self._model.shop_id == shop_id,
             self._model.user_id == user_id,
-            self._model.date_created >= today_start,
+            self._model.created_at >= today_start,
         ).first() is not None
 
     def get_reports_for_shop(self, db: Session, shop_id: int) -> List[ProductNotFoundReport]:
@@ -63,7 +63,7 @@ class ProductNotFoundReportCRUDRepository(CRUDRepository):
             self._model.ean == ean,
         )
         if after:
-            query = query.filter(self._model.date_created > after)
+            query = query.filter(self._model.created_at > after)
         return query.all()
 
 
