@@ -46,7 +46,7 @@ class Subscription(Base):
                     default=SubscriptionStatus.ACTIVE, nullable=False)
     expires_at = Column(DateTime, nullable=True)
 
-    user = relationship("User", backref="subscriptions")
+    user = relationship("User", back_populates="subscriptions")
     events = relationship("SubscriptionEvent", back_populates="subscription",
                           cascade="all, delete", passive_deletes=True)
 

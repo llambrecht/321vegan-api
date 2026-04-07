@@ -36,6 +36,13 @@ class User(Base):
                              cascade="all, delete",
                              passive_deletes=True,)
     error_reports = relationship("ErrorReport", back_populates="user")
+    shops = relationship("Shop", back_populates="user")
+    shop_reviews = relationship("ShopReview", back_populates="user")
+    scan_events = relationship("ScanEvent", back_populates="user")
+    not_found_reports = relationship(
+        "ProductNotFoundReport", back_populates="user")
+    subscriptions = relationship(
+        "Subscription", back_populates="user")
 
     @property
     def nb_checkings(self) -> int:

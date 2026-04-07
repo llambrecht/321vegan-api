@@ -9,10 +9,13 @@ class ProductNotFoundReport(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     ean = Column(String, nullable=False, index=True)
-    shop_id = Column(Integer, ForeignKey("shops.id"), nullable=False, index=True)
-    user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
-    created_at = Column(DateTime, default=datetime.now, nullable=False, index=True)
+    shop_id = Column(Integer, ForeignKey("shops.id"),
+                     nullable=False, index=True)
+    user_id = Column(Integer, ForeignKey(
+        "users.id", ondelete="SET NULL"), nullable=True)
+    created_at = Column(DateTime, default=datetime.now,
+                        nullable=False, index=True)
 
     # Relationships
-    user = relationship("User")
-    shop = relationship("Shop", backref="not_found_reports")
+    user = relationship("User", back_populates="not_found_reports")
+    shop = relationship("Shop", back_populates="not_found_reports")
