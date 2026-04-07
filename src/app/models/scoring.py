@@ -52,5 +52,5 @@ class BrandCriterionScore(Base):
     )
 
     # Relationships
-    brand = relationship("Brand", backref="criterion_scores")
+    brand = relationship("Brand", back_populates="criterion_scores")
     criterion = relationship("Criterion", back_populates="brand_scores")

@@ -16,21 +16,27 @@ class ShopReviewStatus(str, enum.Enum):
 class ShopReview(Base):
     __tablename__ = "shop_reviews"
     __table_args__ = (
-        CheckConstraint("rating >= 1 AND rating <= 5", name="ck_shop_review_rating"),
-        UniqueConstraint("shop_id", "user_id", name="uq_shop_review_shop_user"),
+        CheckConstraint("rating >= 1 AND rating <= 5",
+                        name="ck_shop_review_rating"),
+        UniqueConstraint("shop_id", "user_id",
+                         name="uq_shop_review_shop_user"),
     )
 
     id = Column(Integer, primary_key=True, index=True)
-    shop_id = Column(Integer, ForeignKey("shops.id"), nullable=False, index=True)
-    user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    shop_id = Column(Integer, ForeignKey("shops.id"),
+                     nullable=False, index=True)
+    user_id = Column(Integer, ForeignKey(
+        "users.id", ondelete="SET NULL"), nullable=True)
     rating = Column(Integer, nullable=False)
     comment = Column(Text, nullable=True)
-    status = Column(Enum(ShopReviewStatus), nullable=False, default=ShopReviewStatus.PENDING, index=True)
-    created_at = Column(DateTime, default=datetime.now, nullable=False, index=True)
+    status = Column(Enum(ShopReviewStatus), nullable=False,
+                    default=ShopReviewStatus.PENDING, index=True)
+    created_at = Column(DateTime, default=datetime.now,
+                        nullable=False, index=True)
 
     # Relationships
-    user = relationship("User")
-    shop = relationship("Shop", backref="reviews")
+    user = relationship("User", back_populates="shop_reviews")
+    shop = relationship("Shop", back_populates="reviews")
 
     @hybrid_property
     def user_nickname(self) -> Optional[str]:

@@ -24,6 +24,8 @@ class Brand(Base):
     products = relationship("Product", back_populates="brand")
     interesting_products = relationship(
         "InterestingProduct", back_populates="brand")
+    criterion_scores = relationship(
+        "BrandCriterionScore", back_populates="brand")
 
     @property
     def root_email(self) -> str | None:

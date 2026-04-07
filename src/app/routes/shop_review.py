@@ -19,11 +19,44 @@ from app.schemas.shop_review import (
     ShopReviewOutPaginated,
     ShopReviewFilters,
     ShopReviewSummaryOut,
+    ShopReviewOutCount
 )
 
 log = get_logger(__name__)
 
 router = APIRouter(dependencies=[Depends(get_current_active_user)])
+
+
+@router.get(
+    "/count",
+    response_model=Optional[ShopReviewOutCount],
+    status_code=status.HTTP_200_OK,
+    dependencies=[Depends(get_current_active_user)]
+)
+def fetch_count_shop_reviews(
+    db: Session = Depends(get_db),
+    filter_params: ShopReviewFilters = Depends(),
+) -> Optional[ShopReviewOutCount]:
+    """
+    Fetch how many shop reviews.
+
+    This function fetches total shop review count from the
+    database based on the filters parameters.
+
+    Parameters:
+        db (Session): The database session.
+        filter_params (ShopReviewFilters): The filters parameters.
+
+    Returns:
+        Optional[ShopReviewOutCount]: The total count of shop reviews fetched from the database with filter datas.
+    """
+    total = shop_review_crud.count(
+        db,
+        **filter_params.model_dump(exclude_none=True)
+    )
+    return {
+        "total": total
+    }
 
 
 @router.post(
@@ -63,7 +96,8 @@ def create_review(
             detail="You have already reviewed this shop",
         )
 
-    log.info(f"Shop review created: shop {review_in.shop_id} by user {current_user.id}")
+    log.info(
+        f"Shop review created: shop {review_in.shop_id} by user {current_user.id}")
     return review
 
 
@@ -193,8 +227,12 @@ def update_review(
             status_code=status.HTTP_403_FORBIDDEN, detail="You can only edit your own reviews"
         )
 
-    review.status = ShopReviewStatus.PENDING
-    updated_review = shop_review_crud.update(db, review, review_in)
+    dict_review_update = review_in.model_dump()
+    dict_review_update['status'] = ShopReviewStatus.PENDING
+    review_update = ShopReviewUpdate(
+        **dict_review_update,
+    )
+    updated_review = shop_review_crud.update(db, review, review_update)
     log.info(f"Shop review updated: {id} by user {current_user.id}")
     return updated_review
 
@@ -221,10 +259,11 @@ def delete_review(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Review not found"
         )
-    if review.user_id != current_user.id and current_user.role != "admin":
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN, detail="You can only delete your own reviews"
-        )
+    if review.user_id != current_user.id:
+        if not current_user.is_admin:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN, detail="You can only delete your own reviews"
+            )
 
     shop_review_crud.delete(db, review)
     log.info(f"Shop review deleted: {id} by user {current_user.id}")
@@ -234,12 +273,13 @@ def delete_review(
     "/{id}/status",
     response_model=ShopReviewOut,
     status_code=status.HTTP_200_OK,
+    dependencies=[Depends(RoleChecker(["admin"]))]
 )
 def update_review_status(
     id: int,
     status_in: ShopReviewStatusUpdate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(RoleChecker(["admin"])),
+    current_user: User = Depends(get_current_active_user),
 ) -> ShopReviewOut:
     """
     Approve or reject a review (admin only).
@@ -259,8 +299,7 @@ def update_review_status(
             status_code=status.HTTP_404_NOT_FOUND, detail="Review not found"
         )
 
-    review.status = status_in.status
-    db.commit()
-    db.refresh(review)
-    log.info(f"Shop review {id} status updated to {status_in.status} by admin {current_user.id}")
-    return review
+    updated_review = shop_review_crud.update(db, review, status_in)
+    log.info(
+        f"Shop review {id} status updated to {status_in.status} by admin {current_user.id}")
+    return updated_review

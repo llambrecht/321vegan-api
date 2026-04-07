@@ -19,8 +19,8 @@ class ScanEvent(Base):
         "users.id"), nullable=True)
 
     # Relationships
-    user = relationship("User")
-    shop = relationship("Shop", backref="scan_events")
+    user = relationship("User", back_populates="scan_events")
+    shop = relationship("Shop", back_populates="scan_events")
 
     @property
     def shop_name(self) -> str:
