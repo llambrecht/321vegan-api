@@ -1,6 +1,11 @@
-from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey
+from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, desc
 from sqlalchemy.sql import func
+from sqlalchemy.orm import relationship
+from sqlalchemy.ext.hybrid import hybrid_property
 from app.database.base_class import Base
+from app.models.shop_review import ShopReview
+from app.models.scan_event import ScanEvent
+from app.models.product_not_found_report import ProductNotFoundReport
 
 
 class Shop(Base):
@@ -21,8 +26,49 @@ class Shop(Base):
     osm_type = Column(String, nullable=True)
     shop_type = Column(String, nullable=True)  # supermarket, convenience, ...
     # null = created automatically (e.g. via Overpass API), set = manually created by a user
-    created_by = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
+    created_by = Column(Integer, ForeignKey(
+        "users.id", ondelete="SET NULL"), nullable=True, index=True)
+    user = relationship("User", back_populates="shops")
     created_at = Column(DateTime(timezone=True),
                         server_default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), server_default=func.now(
     ), onupdate=func.now(), nullable=False)
+    reviews = relationship("ShopReview",
+                           back_populates="shop",
+                           cascade="all, delete",
+                           passive_deletes=True,
+                           lazy="selectin",
+                           order_by=lambda: desc(ShopReview.created_at))
+    scan_events = relationship("ScanEvent",
+                               back_populates="shop",
+                               cascade="all, delete",
+                               passive_deletes=True,
+                               lazy="selectin",
+                               order_by=lambda: desc(ScanEvent.created_at))
+    not_found_reports = relationship("ProductNotFoundReport",
+                                     back_populates="shop",
+                                     cascade="all, delete",
+                                     passive_deletes=True,
+                                     lazy="selectin",
+                                     order_by=lambda: desc(ProductNotFoundReport.created_at))
+
+    @hybrid_property
+    def last_scanned_at(self):
+        if self.scan_events:
+            return max(
+                self.scan_events,
+                key=lambda scan_event: scan_event.created_at
+            ).created_at
+        else:
+            return None
+
+    @last_scanned_at.inplace.expression
+    @classmethod
+    def _last_scanned_at_expression(cls):
+        return (
+            select(ScanEvent.created_at)
+            .where(ScanEvent.shop_id == cls.id)
+            .order_by(ScanEvent.created_at.desc())
+            .limit(1)
+            .as_scalar()
+        )
