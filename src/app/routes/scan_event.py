@@ -11,7 +11,7 @@ from app.crud.shop import shop_crud
 from app.database.db import get_db
 from app.log import get_logger
 from app.models import ScanEvent, User, ApiClient
-from app.schemas.scan_event import ScanEventCreate, ScanEventOut, ScanEventUpdate, ScanEventOutPaginated, ScanEventFilters, ConfirmShopRequest
+from app.schemas.scan_event import ScanEventCreate, ScanEventOut, ScanEventUpdate, ScanEventOutPaginated, ScanEventFilters, ConfirmShopRequest, NearbyShopOut
 from app.schemas.shop import ShopCreate
 from app.services.openstreetmap import osm_service
 
@@ -263,23 +263,23 @@ async def create_scan_event(
         for shop in nearby_shops:
             if isinstance(shop, dict):
                 # OSM-only shop (not yet in DB)
-                result.append({
-                    "name": shop.get("name"),
-                    "address": shop.get("address"),
-                    "city": shop.get("city"),
-                    "osm_id": shop.get("osm_id"),
-                    "latitude": shop.get("latitude"),
-                    "longitude": shop.get("longitude"),
-                })
+                result.append(NearbyShopOut(
+                    name=shop.get("name"),
+                    address=shop.get("address"),
+                    city=shop.get("city"),
+                    osm_id=shop.get("osm_id"),
+                    latitude=shop.get("latitude"),
+                    longitude=shop.get("longitude"),
+                ))
             elif shop.id != event.shop_id:
                 # DB shop (exclude the one already linked)
-                result.append({
-                    "id": shop.id,
-                    "name": shop.name,
-                    "address": shop.address,
-                    "city": shop.city,
-                    "osm_id": shop.osm_id,
-                })
+                result.append(NearbyShopOut(
+                    id=shop.id,
+                    name=shop.name,
+                    address=shop.address,
+                    city=shop.city,
+                    osm_id=shop.osm_id,
+                ))
         response.nearby_shops = result
 
         # If no shop was linked yet, set shop_name from the closest nearby shop
