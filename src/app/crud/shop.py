@@ -313,16 +313,20 @@ class ShopCRUDRepository(CRUDRepository):
         """
         Compute a presence score between 0.0 and 1.0.
 
-        - Freshness (60%): decays linearly over 180 days since last scan.
-        - Frequency (40%): scan count capped at 10.
+        - Starts at 0.99 right after a scan.
+        - Frequency (scan count capped at 10) extends the decay window:
+          1 scan → 90-day window, 10 scans → 270-day window.
+        - Decay is quadratic (n=2): slow at first, accelerating over time.
         - Penalty: each relevant not-found report subtracts up to 0.1,
-          decaying over 30 days.
+          decaying linearly over 30 days.
         - Bonus: each relevant found report adds up to 0.1,
-          decaying over 30 days (counteracts not-found penalties).
+          decaying linearly over 30 days (counteracts not-found penalties).
         """
         days_since_scan = (now - last_scanned_at).total_seconds() / 86400
-        freshness = max(0.0, min(1.0, 1.0 - days_since_scan / 180))
         frequency = max(0.0, min(1.0, scan_count / 10))
+
+        effective_window = 30 * (1 + frequency * 2)
+        freshness = max(0.0, 1.0 - (days_since_scan / effective_window) ** 2)
 
         penalty = 0.0
         for date in report_dates:
@@ -334,7 +338,7 @@ class ShopCRUDRepository(CRUDRepository):
             days_ago = (now - date).total_seconds() / 86400
             bonus += 0.1 * max(0.0, 1.0 - days_ago / 30)
 
-        return max(0.0, min(1.0, freshness * 0.6 + frequency * 0.4 - penalty + bonus))
+        return max(0.0, min(0.99, freshness - penalty + bonus))
 
     def get_shops_by_eans(self, db: Session, eans: List[str]) -> List[int]:
         """
