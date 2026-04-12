@@ -6,6 +6,7 @@ from app.database.base_class import Base
 from app.models.shop_review import ShopReview
 from app.models.scan_event import ScanEvent
 from app.models.product_not_found_report import ProductNotFoundReport
+from app.models.product_found_report import ProductFoundReport
 
 
 class Shop(Base):
@@ -51,6 +52,12 @@ class Shop(Base):
                                      passive_deletes=True,
                                      lazy="selectin",
                                      order_by=lambda: desc(ProductNotFoundReport.created_at))
+    found_reports = relationship("ProductFoundReport",
+                                 back_populates="shop",
+                                 cascade="all, delete",
+                                 passive_deletes=True,
+                                 lazy="selectin",
+                                 order_by=lambda: desc(ProductFoundReport.created_at))
 
     @hybrid_property
     def last_scanned_at(self):

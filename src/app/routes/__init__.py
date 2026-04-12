@@ -21,6 +21,7 @@ from app.routes.partner_category import router as partner_category_router
 from app.routes.subscription import router as subscription_router
 from app.routes.webhook import router as webhook_router
 from app.routes.product_not_found_report import router as product_not_found_report_router
+from app.routes.product_found_report import router as product_found_report_router
 from app.routes.shop_review import router as shop_review_router
 
 
@@ -48,5 +49,6 @@ __all__ = [
     "subscription_router",
     "webhook_router",
     "product_not_found_report_router",
+    "product_found_report_router",
     "shop_review_router",
 ]
