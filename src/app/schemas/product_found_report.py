@@ -1,0 +1,23 @@
+from pydantic import BaseModel
+from typing import Optional
+from datetime import datetime, timezone
+
+
+class ProductFoundReportCreate(BaseModel):
+    ean: str
+    shop_id: int
+    user_id: Optional[int] = None
+
+
+class ProductFoundReportOut(BaseModel):
+    id: int
+    ean: str
+    shop_id: int
+    user_id: Optional[int] = None
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+        json_encoders = {
+            datetime: lambda v: v.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%f%z"),
+        }

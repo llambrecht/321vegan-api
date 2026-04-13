@@ -6,6 +6,7 @@ from app.crud.base import CRUDRepository
 from app.models.shop import Shop
 from app.models.scan_event import ScanEvent
 from app.models.product_not_found_report import ProductNotFoundReport
+from app.models.product_found_report import ProductFoundReport
 import math
 
 
@@ -238,6 +239,26 @@ class ShopCRUDRepository(CRUDRepository):
             .subquery()
         )
 
+        # Subquery 3: found report stats per EAN, only reports after last scan
+        found_subq = (
+            db.query(
+                ProductFoundReport.ean,
+                func.count(ProductFoundReport.id).label("found_count"),
+                func.max(ProductFoundReport.created_at).label("last_found_at"),
+                array_agg(ProductFoundReport.created_at).label("found_dates"),
+            )
+            .join(
+                scan_subq,
+                and_(
+                    scan_subq.c.ean == ProductFoundReport.ean,
+                    ProductFoundReport.created_at > scan_subq.c.last_scanned_at,
+                ),
+            )
+            .filter(ProductFoundReport.shop_id == shop_id)
+            .group_by(ProductFoundReport.ean)
+            .subquery()
+        )
+
         # Join scan stats with report stats
         results = (
             db.query(
@@ -247,8 +268,12 @@ class ShopCRUDRepository(CRUDRepository):
                 func.coalesce(report_subq.c.not_found_count, 0).label("not_found_count"),
                 report_subq.c.last_not_found_at,
                 report_subq.c.report_dates,
+                func.coalesce(found_subq.c.found_count, 0).label("found_count"),
+                found_subq.c.last_found_at,
+                found_subq.c.found_dates,
             )
             .outerjoin(report_subq, report_subq.c.ean == scan_subq.c.ean)
+            .outerjoin(found_subq, found_subq.c.ean == scan_subq.c.ean)
             .order_by(scan_subq.c.last_scanned_at.desc())
             .all()
         )
@@ -258,9 +283,10 @@ class ShopCRUDRepository(CRUDRepository):
 
         for row in results:
             report_dates = [d for d in (row.report_dates or []) if d is not None]
+            found_dates = [d for d in (row.found_dates or []) if d is not None]
 
             presence_score = self._compute_presence_score(
-                now, row.last_scanned_at, row.scan_count, report_dates,
+                now, row.last_scanned_at, row.scan_count, report_dates, found_dates,
             )
 
             summaries.append({
@@ -269,6 +295,8 @@ class ShopCRUDRepository(CRUDRepository):
                 "last_scanned_at": row.last_scanned_at,
                 "not_found_count": row.not_found_count,
                 "last_not_found_at": row.last_not_found_at,
+                "found_count": row.found_count,
+                "last_found_at": row.last_found_at,
                 "presence_score": round(presence_score, 2),
             })
 
@@ -280,25 +308,37 @@ class ShopCRUDRepository(CRUDRepository):
         last_scanned_at: datetime,
         scan_count: int,
         report_dates: list[datetime],
+        found_dates: list[datetime],
     ) -> float:
         """
         Compute a presence score between 0.0 and 1.0.
 
-        - Freshness (60%): decays linearly over 90 days since last scan.
-        - Frequency (40%): scan count capped at 10.
-        - Penalty: each relevant not-found report subtracts up to 0.2,
-          decaying over 30 days.
+        - Starts at 0.99 right after a scan.
+        - Frequency (scan count capped at 10) extends the decay window:
+          1 scan → 90-day window, 10 scans → 270-day window.
+        - Decay is quadratic (n=2): slow at first, accelerating over time.
+        - Penalty: each relevant not-found report subtracts up to 0.1,
+          decaying linearly over 30 days.
+        - Bonus: each relevant found report adds up to 0.1,
+          decaying linearly over 30 days (counteracts not-found penalties).
         """
         days_since_scan = (now - last_scanned_at).total_seconds() / 86400
-        freshness = max(0.0, min(1.0, 1.0 - days_since_scan / 90))
         frequency = max(0.0, min(1.0, scan_count / 10))
+
+        effective_window = 30 * (1 + frequency * 2)
+        freshness = max(0.0, 1.0 - (days_since_scan / effective_window) ** 2)
 
         penalty = 0.0
         for date in report_dates:
             days_ago = (now - date).total_seconds() / 86400
-            penalty += 0.2 * max(0.0, 1.0 - days_ago / 30)
+            penalty += 0.1 * max(0.0, 1.0 - days_ago / 30)
 
-        return max(0.0, min(1.0, freshness * 0.6 + frequency * 0.4 - penalty))
+        bonus = 0.0
+        for date in found_dates:
+            days_ago = (now - date).total_seconds() / 86400
+            bonus += 0.1 * max(0.0, 1.0 - days_ago / 30)
+
+        return max(0.0, min(0.99, freshness - penalty + bonus))
 
     def get_shops_by_eans(self, db: Session, eans: List[str]) -> List[int]:
         """

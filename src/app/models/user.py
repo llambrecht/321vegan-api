@@ -41,6 +41,8 @@ class User(Base):
     scan_events = relationship("ScanEvent", back_populates="user")
     not_found_reports = relationship(
         "ProductNotFoundReport", back_populates="user")
+    found_reports = relationship(
+        "ProductFoundReport", back_populates="user")
     subscriptions = relationship(
         "Subscription", back_populates="user")
 
