@@ -287,7 +287,9 @@ def update_product(
 
     try:
         if active_user.is_contributor() and product.state == ProductState.PUBLISHED:
-            dict_product_update = product_update.model_dump()
+            # Only override the state; keep every other field the client
+            # actually sent (avoids clobbering non-null columns with defaults).
+            dict_product_update = product_update.model_dump(exclude_unset=True)
             dict_product_update['state'] = ProductState.WAITING_PUBLISH
             product_update = ProductUpdate(
                 **dict_product_update,

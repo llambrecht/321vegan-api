@@ -26,6 +26,12 @@ class ProductStatus(str, enum.Enum):
     NOT_FOUND = "NOT_FOUND"
 
 
+class ProductType(str, enum.Enum):
+    FOOD = "FOOD"
+    COSMETIC = "COSMETIC"
+    HOUSEHOLD = "HOUSEHOLD"
+
+
 class Product(Base):
     __tablename__ = "products"
 
@@ -40,6 +46,12 @@ class Product(Base):
     brand_id = Column(Integer, ForeignKey("brands.id"))
     brand = relationship("Brand", back_populates="products")
     status = Column(Enum(ProductStatus), default=ProductStatus.MAYBE_VEGAN)
+    product_type = Column(
+        Enum(ProductType),
+        default=ProductType.FOOD,
+        server_default=ProductType.FOOD.value,
+        nullable=False,
+    )
     biodynamic = Column(Boolean, default=False)
     state = Column(Enum(ProductState), default=ProductState.CREATED)
     created_from_off = Column(Boolean, default=False)

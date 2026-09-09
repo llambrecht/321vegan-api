@@ -19,6 +19,7 @@ class ProductBase(BaseModel):
     problem_description: Optional[str] = None
     brand_id: Optional[int] = None
     status: Optional[str] = None
+    product_type: Optional[str] = None
     biodynamic: Optional[bool] = None
     state: Optional[str] = None
     has_non_vegan_old_receipe: Optional[bool] = None
@@ -56,6 +57,7 @@ class ProductOut(BaseModel):
     problem_description: Optional[str] = None
     brand: Optional[Brand] = None
     status: str
+    product_type: str
     biodynamic: bool
     state: str
     created_from_off: bool
@@ -95,6 +97,8 @@ class ProductFilters(BaseModel):
     brand___name__lookalike: Optional[str] = None
     brand___id: Optional[str] = None
     status: Optional[str] = None
+    product_type: Optional[str] = None
+    product_type__in: Optional[List[str]] = Field(Query(None))
     state: Optional[str] = None
     state__in: Optional[List[str]] = Field(Query(None))
     created_at: Optional[str] = None
